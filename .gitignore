@@ -1,5 +1,9 @@
-# Blacklist files/folders in same directory as the .gitignore file
-/*
+# Ignore everything
+*
+Library/
 
 # Except for the actual code
 !*.cs
+
+# ...even if they are in subdirectories
+!*/
