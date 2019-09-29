@@ -40,7 +40,6 @@ public partial class GridManager : MonoBehaviour {
     public TileData TileData => defaultTileData;
     public GameObject tempTile;
 	public bool IsLevelRisingUp { get; private set; }
-
     public bool IsGridMoving {
 		get {
 			{
@@ -63,67 +62,7 @@ public partial class GridManager : MonoBehaviour {
 		}
 	}
 
-	private void Awake() {
-		IsLevelRisingUp = true;
-	}
-
-    private void Start() {
-        StartCoroutine(RiseLevel());
-    }
-
-	public IEnumerator RiseLevel(bool instant = false) {
-		IsLevelRisingUp = true;
-
-		for (int x = 0; x < grid.rows.Count; x++) {
-			for (int y = 0; y < grid.rows[x].row.Count; y++) {
-				if (grid.rows[x].row[y] == null)
-					continue;
-
-				if (grid.rows[x].row[y].tileType == TileType.Start || grid.rows[x].row[y].TileAnimator == false)
-					continue;
-
-				if (instant) {
-					//grid.rows[x].row[y].tileAnimator.MoveDownInstant(); Nothing yet, just copied SinkLevel
-					continue;
-				}
-
-				grid.rows[x].row[y].TileAnimator.MoveUp(false, true);
-			}
-		}
-
-		// Wait for the entire level to raise back up
-		while (true) {
-			bool shouldWait = false;
-			for (int x = 0; x < grid.rows.Count; x++) {
-				if (shouldWait == true) {
-					break;
-				}
-
-				for (int y = 0; y < grid.rows[x].row.Count; y++) {
-					if (grid.rows[x].row[y] == null) {
-						continue;
-					}
-
-					if (grid.rows[x].row[y].TileAnimator.isUp == false) {
-						shouldWait = true;
-						break;
-					}
-				}
-			}
-
-			if (shouldWait == false) {
-				break;
-			}
-
-			yield return null;
-		}
-
-		IsLevelRisingUp = false;
-		Physics.SyncTransforms();
-	}
-
 	private Player playerObject = null;
-
     public Player PlayerObject {
         get {
             if (playerObject == null) {
@@ -132,6 +71,62 @@ public partial class GridManager : MonoBehaviour {
 
             return playerObject;
         }
+    }
+
+    private void OnEnable() {
+        StopAllCoroutines();
+        StartCoroutine(RiseLevel());
+    }
+
+    public IEnumerator RiseLevel(bool instant = false) {
+        IsLevelRisingUp = true;
+
+        for(int x = 0; x < grid.rows.Count; x++) {
+            for(int y = 0; y < grid.rows[x].row.Count; y++) {
+                if(grid.rows[x].row[y] == null)
+                    continue;
+
+                if(grid.rows[x].row[y].tileType == TileType.Start || grid.rows[x].row[y].TileAnimator == false)
+                    continue;
+
+                if(instant) {
+                    //grid.rows[x].row[y].tileAnimator.MoveDownInstant(); Nothing yet, just copied SinkLevel
+                    continue;
+                }
+
+                grid.rows[x].row[y].TileAnimator.MoveUp(false, true);
+            }
+        }
+
+        // Wait for the entire level to raise back up
+        while(true) {
+            bool shouldWait = false;
+            for(int x = 0; x < grid.rows.Count; x++) {
+                if(shouldWait == true) {
+                    break;
+                }
+
+                for(int y = 0; y < grid.rows[x].row.Count; y++) {
+                    if(grid.rows[x].row[y] == null) {
+                        continue;
+                    }
+
+                    if(grid.rows[x].row[y].TileAnimator.isUp == false) {
+                        shouldWait = true;
+                        break;
+                    }
+                }
+            }
+
+            if(shouldWait == false) {
+                break;
+            }
+
+            yield return null;
+        }
+
+        IsLevelRisingUp = false;
+        Physics.SyncTransforms();
     }
 
     public void AlignPlayerRotation() {
