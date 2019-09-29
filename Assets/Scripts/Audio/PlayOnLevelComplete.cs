@@ -1,21 +1,21 @@
 ﻿using UnityEngine;
 
 public class PlayOnLevelComplete : AudioPlayer {
-	[Header("Audio")]
-	[SerializeField]
-	private AudioClip[] levelCompletionSouds = null;
+    [Header("Audio")]
+    [SerializeField]
+    private AudioClip[] levelCompletionSouds = null;
 
-	private void Awake() {
-		Player.OnPlayerWon += OnPlayerWon;
-	}
+    private void Awake() {
+        Player.OnPlayerWon += OnPlayerWon;
+    }
 
-	protected override void OnDestroy() {
-		base.OnDestroy();
+    protected override void OnDestroy() {
+        base.OnDestroy();
 
-		Player.OnPlayerWon -= OnPlayerWon;
-	}
+        Player.OnPlayerWon -= OnPlayerWon;
+    }
 
-	private void OnPlayerWon(string completedLevel) {
-		PlayRandomSound(levelCompletionSouds);
-	}
+    private void OnPlayerWon(string completedLevel) {
+        PlayRandomSound(levelCompletionSouds);
+    }
 }

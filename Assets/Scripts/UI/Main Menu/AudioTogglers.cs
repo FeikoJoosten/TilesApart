@@ -11,12 +11,12 @@ public class AudioTogglers : MonoBehaviour {
     private Sprite disabledSprite = null;
     [SerializeField]
     private AudioType audioType = AudioType.SFX;
-	
-	private Image imageToUse;
-	
-	private void Awake() {
-		imageToUse = GetComponent<Image>();
-	}
+
+    private Image imageToUse;
+
+    private void Awake() {
+        imageToUse = GetComponent<Image>();
+    }
 
     public void Start() {
         AudioManager manager = AudioManager.Instance;
@@ -34,21 +34,21 @@ public class AudioTogglers : MonoBehaviour {
     public void ToggleSFXSounds() {
         AudioManager manager = AudioManager.Instance;
         manager.ToggleSFX();
-		
-        UpdateSprite(manager.SfxEnabled);
-	}
 
-	public void ToggleMusicSounds() {
+        UpdateSprite(manager.SfxEnabled);
+    }
+
+    public void ToggleMusicSounds() {
         AudioManager manager = AudioManager.Instance;
         manager.ToggleMusic();
 
         UpdateSprite(manager.MusicEnabled);
-	}
+    }
 
     // Update sprites from when audio changes
     public void UpdateSprite(bool enabled) {
-		if (imageToUse == null) return;
-		
-		imageToUse.sprite = enabled == true ? enabledSprite : disabledSprite;
+        if (imageToUse == null) return;
+
+        imageToUse.sprite = enabled == true ? enabledSprite : disabledSprite;
     }
 }

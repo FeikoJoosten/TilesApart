@@ -2,89 +2,88 @@
 using UnityEngine;
 
 public class GameMenus : AudioPlayer {
-	public static event System.Action OnPauseMenuOpened = delegate { };
-	public static event System.Action OnPauseMenuClosed = delegate { };
-	public static event System.Action OnUndoPressed = delegate { };
-	public static event System.Action<int> OnRestartPressed = delegate { };
+    public static event System.Action OnPauseMenuOpened = delegate { };
+    public static event System.Action OnPauseMenuClosed = delegate { };
+    public static event System.Action OnUndoPressed = delegate { };
+    public static event System.Action<int> OnRestartPressed = delegate { };
 
-	[SerializeField]
+    [SerializeField]
     private GameObject gameMenu = null;
     [SerializeField]
     private GameObject pauseMenu = null;
     [SerializeField]
     private GameObject settingsMenu = null;
-	[SerializeField]
-	private UnityEngine.UI.Button restartButton = null;
+    [SerializeField]
+    private UnityEngine.UI.Button restartButton = null;
 
     [Header("Sounds")]
     [SerializeField]
     private List<AudioClip> buttonSounds = null;
 
-	public GameObject PauseMenu => pauseMenu;
-	
+    public GameObject PauseMenu => pauseMenu;
+
     protected override void Start() {
-		base.Start();
-		
-		DontDestroyOnLoad(gameObject);
-	    Player.OnPlayerDied += OnPlayerDied;
-	    PlayerAnimator.OnPlayerRespawned += OnPlayerRespawned;
+        base.Start();
+
+        DontDestroyOnLoad(gameObject);
+        Player.OnPlayerDied += OnPlayerDied;
+        PlayerAnimator.OnPlayerRespawned += OnPlayerRespawned;
 #if UNITY_ANDROID
-	    AndroidBackButton.AndroidBackButtonPressed += OnAndroidBackButtonPressed;
+        AndroidBackButton.AndroidBackButtonPressed += OnAndroidBackButtonPressed;
 #endif
     }
 
-	protected override void OnDestroy() {
-		base.OnDestroy();
-		Player.OnPlayerDied -= OnPlayerDied;
-		PlayerAnimator.OnPlayerRespawned -= OnPlayerRespawned;
+    protected override void OnDestroy() {
+        base.OnDestroy();
+        Player.OnPlayerDied -= OnPlayerDied;
+        PlayerAnimator.OnPlayerRespawned -= OnPlayerRespawned;
 #if UNITY_ANDROID
-		AndroidBackButton.AndroidBackButtonPressed -= OnAndroidBackButtonPressed;
+        AndroidBackButton.AndroidBackButtonPressed -= OnAndroidBackButtonPressed;
 #endif
-	}
+    }
 
-	private void OnPlayerDied(string diedAtLevel) {
-		if (restartButton == null) return;
+    private void OnPlayerDied(string diedAtLevel) {
+        if (restartButton == null) return;
 
-		restartButton.interactable = false;
-	}
+        restartButton.interactable = false;
+    }
 
-	private void OnPlayerRespawned() {
-		if (restartButton == null) return;
+    private void OnPlayerRespawned() {
+        if (restartButton == null) return;
 
-		restartButton.interactable = true;
-	}
+        restartButton.interactable = true;
+    }
 
 #if UNITY_ANDROID
-	private void OnAndroidBackButtonPressed() {
-		if (pauseMenu == null || gameMenu == null || settingsMenu == null) return;
+    private void OnAndroidBackButtonPressed() {
+        if (pauseMenu == null || gameMenu == null || settingsMenu == null) return;
 
-		if (pauseMenu.activeInHierarchy) {
-			pauseMenu.SetActive(false);
-			gameMenu.SetActive(true);
-			PlayRandomButtonSound();
-			OnPauseMenuClosed();
-		}
-		else {
-			pauseMenu.SetActive(true);
-			gameMenu.SetActive(false);
-			PlayRandomButtonSound();
-			OnPauseMenuOpened();
-		}
+        if (pauseMenu.activeInHierarchy) {
+            pauseMenu.SetActive(false);
+            gameMenu.SetActive(true);
+            PlayRandomButtonSound();
+            OnPauseMenuClosed();
+        } else {
+            pauseMenu.SetActive(true);
+            gameMenu.SetActive(false);
+            PlayRandomButtonSound();
+            OnPauseMenuOpened();
+        }
 
-		if (settingsMenu.activeInHierarchy) {
-			settingsMenu.SetActive(false);
-			pauseMenu.SetActive(true);
-			PlayRandomButtonSound();
-		}
-	}
+        if (settingsMenu.activeInHierarchy) {
+            settingsMenu.SetActive(false);
+            pauseMenu.SetActive(true);
+            PlayRandomButtonSound();
+        }
+    }
 #endif
 
-	/// <summary> Pause button of the game UI menu </summary>
-	public void PauseButton() {
+    /// <summary> Pause button of the game UI menu </summary>
+    public void PauseButton() {
         // Toggle UI menus
         pauseMenu.SetActive(true);
         gameMenu.SetActive(false);
-	    OnPauseMenuOpened();
+        OnPauseMenuOpened();
     }
 
     /// <summary> Continue button of the game UI menu </summary>
@@ -92,22 +91,22 @@ public class GameMenus : AudioPlayer {
         // Toggle UI menus
         pauseMenu.SetActive(false);
         gameMenu.SetActive(true);
-	    OnPauseMenuClosed();
+        OnPauseMenuClosed();
     }
 
     /// <summary> Main Menu button of the UI menu </summary>
-    public void MainMenuButton () {
-	    FadeCamera.OnFadeCompleted += OnFadeCompleted;
-		LevelManager.Instance.FadeCamera.FadeOut();
+    public void MainMenuButton() {
+        FadeCamera.OnFadeCompleted += OnFadeCompleted;
+        LevelManager.Instance.FadeCamera.FadeOut();
     }
 
-	private void OnFadeCompleted(bool isFadeIn) {
-		if (isFadeIn) return;
+    private void OnFadeCompleted(bool isFadeIn) {
+        if (isFadeIn) return;
 
-		FadeCamera.OnFadeCompleted -= OnFadeCompleted;
-		LevelManager.Instance.LoadMainMenu();
-		Destroy(gameObject);
-	}
+        FadeCamera.OnFadeCompleted -= OnFadeCompleted;
+        LevelManager.Instance.LoadMainMenu();
+        Destroy(gameObject);
+    }
 
     /// <summary> Reset button of the UI menu </summary>
     public void ResetButton() {
@@ -115,7 +114,7 @@ public class GameMenus : AudioPlayer {
         pauseMenu.SetActive(false);
         gameMenu.SetActive(true);
 
-	    OnRestartPressed(LevelManager.Instance.GetCurrentMoveCount());
+        OnRestartPressed(LevelManager.Instance.GetCurrentMoveCount());
     }
 
     /// <summary> Button to go to settings from main menu </summary>
@@ -134,7 +133,7 @@ public class GameMenus : AudioPlayer {
 
     /// <summary> Undo button of the UI menu </summary>
     public void UndoButton() {
-	    OnUndoPressed();
+        OnUndoPressed();
     }
 
     /// <summary> Play a random button click sound </summary>
@@ -144,11 +143,11 @@ public class GameMenus : AudioPlayer {
         PlayRandomSound(buttonSounds, playOnce);
     }
 
-	public void ToggleSFX() {
-		AudioManager.Instance.ToggleSFX();
-	}
+    public void ToggleSFX() {
+        AudioManager.Instance.ToggleSFX();
+    }
 
-	public void ToggleMusic() {
-		AudioManager.Instance.ToggleMusic();
-	}
+    public void ToggleMusic() {
+        AudioManager.Instance.ToggleMusic();
+    }
 }

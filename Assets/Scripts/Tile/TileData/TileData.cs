@@ -10,7 +10,7 @@ public struct TileDirections {
     }
 
     public bool[] GetDirections() {
-        return new bool[4] {north, east, south, west};
+        return new bool[4] { north, east, south, west };
     }
 
     public bool north;
@@ -60,8 +60,8 @@ public class TileData : ScriptableObject {
     public TileDirections endDirections = new TileDirections(true, false, false, false);
 
     [Header("Pathless")]
-	public Mesh pathlessTileMesh;
-	public Material[] pathlessTileMaterials = new Material[1];
+    public Mesh pathlessTileMesh;
+    public Material[] pathlessTileMaterials = new Material[1];
     public Color[] pathlessTileLowlightColors = new Color[4];
-	public TileDirections pathlessDirection = new TileDirections(false, false, false, false);
+    public TileDirections pathlessDirection = new TileDirections(false, false, false, false);
 }

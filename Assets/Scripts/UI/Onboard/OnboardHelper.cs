@@ -11,13 +11,13 @@ public class OnboardHelper : MonoBehaviour {
     [SerializeField]
     private float resetDelay = 10;
 
-	private float currentTiming;
+    private float currentTiming;
     private float targetTiming;
 
     private void Start() {
         Tile.OnTileStartedMoving += OnTileStartedMoving;
-	    GameMenus.OnPauseMenuOpened += OnPauseMenuOpened;
-	    GameMenus.OnPauseMenuClosed += OnPauseMenuClosed;
+        GameMenus.OnPauseMenuOpened += OnPauseMenuOpened;
+        GameMenus.OnPauseMenuClosed += OnPauseMenuClosed;
 
         targetTiming = startupDelay;
 
@@ -29,30 +29,30 @@ public class OnboardHelper : MonoBehaviour {
 
     private void OnDestroy() {
         Tile.OnTileStartedMoving -= OnTileStartedMoving;
-	    GameMenus.OnPauseMenuOpened -= OnPauseMenuOpened;
-	    GameMenus.OnPauseMenuClosed -= OnPauseMenuClosed;
-	}
+        GameMenus.OnPauseMenuOpened -= OnPauseMenuOpened;
+        GameMenus.OnPauseMenuClosed -= OnPauseMenuClosed;
+    }
 
     private void OnTileStartedMoving(Vector2Int startingIndex, Vector2Int movementDirection) {
         // Add a delay to the repetition of the animation in case the player moved a tile.
         targetTiming += resetDelay;
     }
 
-	private void OnPauseMenuOpened() {
-		if (gameObject.activeInHierarchy == false) {
-			return;
-		}
+    private void OnPauseMenuOpened() {
+        if (gameObject.activeInHierarchy == false) {
+            return;
+        }
 
-		StopAllCoroutines();
-	}
+        StopAllCoroutines();
+    }
 
-	private void OnPauseMenuClosed() {
-		if (gameObject.activeInHierarchy == false) {
-			return;
-		}
+    private void OnPauseMenuClosed() {
+        if (gameObject.activeInHierarchy == false) {
+            return;
+        }
 
-		StartCoroutine(RepeatOnboardingAnimation());
-	}
+        StartCoroutine(RepeatOnboardingAnimation());
+    }
 
     private IEnumerator RepeatOnboardingAnimation() {
         while (Application.isPlaying) {
@@ -62,8 +62,8 @@ public class OnboardHelper : MonoBehaviour {
                 targetTiming += repeatingDelay;
             }
 
-	        currentTiming += Time.deltaTime;
-			yield return null;
+            currentTiming += Time.deltaTime;
+            yield return null;
         }
     }
 }

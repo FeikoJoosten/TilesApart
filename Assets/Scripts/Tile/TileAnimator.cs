@@ -2,142 +2,142 @@
 using UnityEngine;
 
 public class TileAnimator : MonoBehaviour {
-	
+
     private Tile tile;
-	public Tile Tile {
-		get { return tile ?? (Tile = GetComponent<Tile>()); }
-		set { tile = value; }
-	}
-	public bool isUp => Mathf.Approximately(transform.localPosition.y, 0);
+    public Tile Tile {
+        get { return tile ?? (Tile = GetComponent<Tile>()); }
+        set { tile = value; }
+    }
+    public bool isUp => Mathf.Approximately(transform.localPosition.y, 0);
 
-	public void Start() {
-		Player.OnPlayerEndedMoving += OnPlayerEndedMoving;
+    public void Start() {
+        Player.OnPlayerEndedMoving += OnPlayerEndedMoving;
 
-		if (GetComponent<Animator>()) {
-			Destroy(GetComponent<Animator>());
-		}
-	}
+        if (GetComponent<Animator>()) {
+            Destroy(GetComponent<Animator>());
+        }
+    }
 
-	private void OnDestroy() {
-		if (Application.isPlaying == false) {
-			return;
-		}
+    private void OnDestroy() {
+        if (Application.isPlaying == false) {
+            return;
+        }
 
-		Player.OnPlayerEndedMoving -= OnPlayerEndedMoving;
-	}
+        Player.OnPlayerEndedMoving -= OnPlayerEndedMoving;
+    }
 
-	private void OnPlayerEndedMoving() {
-		if (gameObject.activeInHierarchy == false) {
-			return;
-		}
+    private void OnPlayerEndedMoving() {
+        if (gameObject.activeInHierarchy == false) {
+            return;
+        }
 
         // Move the starting tile downwards after the first move
         if (Tile.tileType == TileType.Start) {
             MoveDown(false, true);
-		}
-	}
+        }
+    }
 
-	public void MoveUp(bool ignoreUpCheck = false, bool fadeIn = false) {
-		if (isUp == true && ignoreUpCheck == false) return;
+    public void MoveUp(bool ignoreUpCheck = false, bool fadeIn = false) {
+        if (isUp == true && ignoreUpCheck == false) return;
 
-		StopAllCoroutines();
-		StartCoroutine(MoveHorizontally(new Vector3(transform.position.x, 0, transform.position.z)));
+        StopAllCoroutines();
+        StartCoroutine(MoveHorizontally(new Vector3(transform.position.x, 0, transform.position.z)));
 
-		if (fadeIn) {
-			StartCoroutine(FadeIn());
-		}
-	}
+        if (fadeIn) {
+            StartCoroutine(FadeIn());
+        }
+    }
 
-	public void MoveDown(bool ignoreDownCheck = false, bool fadeOut = false) {
-		if (isUp == false && ignoreDownCheck == false) return;
+    public void MoveDown(bool ignoreDownCheck = false, bool fadeOut = false) {
+        if (isUp == false && ignoreDownCheck == false) return;
 
-		StopAllCoroutines();
-		StartCoroutine(MoveHorizontally(new Vector3(transform.position.x, Tile.TileOwner.GridData.TileDownMovementOffset, transform.position.z)));
+        StopAllCoroutines();
+        StartCoroutine(MoveHorizontally(new Vector3(transform.position.x, Tile.TileOwner.GridData.TileDownMovementOffset, transform.position.z)));
 
-		if (fadeOut) {
-			StartCoroutine(FadeOut());
-		}
-	}
+        if (fadeOut) {
+            StartCoroutine(FadeOut());
+        }
+    }
 
-	private IEnumerator MoveHorizontally(Vector3 moveTarget) {
-		Vector3 movementStartPosition = Tile.transform.position;
-		float endTime = Tile.TileOwner.GridData.TileHorizontalMovement[Tile.TileOwner.GridData.TileHorizontalMovement.length - 1].time;
-		
-		float currentAnimationTime = 0;
+    private IEnumerator MoveHorizontally(Vector3 moveTarget) {
+        Vector3 movementStartPosition = Tile.transform.position;
+        float endTime = Tile.TileOwner.GridData.TileHorizontalMovement[Tile.TileOwner.GridData.TileHorizontalMovement.length - 1].time;
 
-		while (currentAnimationTime < endTime) {
-			Tile.transform.position = Vector3.LerpUnclamped(movementStartPosition, moveTarget, Tile.TileOwner.GridData.TileHorizontalMovement.Evaluate(currentAnimationTime));
+        float currentAnimationTime = 0;
 
-			currentAnimationTime += Time.deltaTime;
+        while (currentAnimationTime < endTime) {
+            Tile.transform.position = Vector3.LerpUnclamped(movementStartPosition, moveTarget, Tile.TileOwner.GridData.TileHorizontalMovement.Evaluate(currentAnimationTime));
 
-			yield return null;
-		}
-		
-		Tile.transform.position = moveTarget;
-	}
+            currentAnimationTime += Time.deltaTime;
 
-	private IEnumerator FadeOut() {
-		float endTime = Tile.TileOwner.GridData.tileWrapFadeOutDuration;
-		float currentFadeStep = 0;
+            yield return null;
+        }
 
-		if (Tile.MeshRenderer == null) yield break;
-		if (Tile.MeshRenderer.sharedMaterial == null) yield break;
+        Tile.transform.position = moveTarget;
+    }
 
-		while (currentFadeStep < endTime) {
-			// Fading out effect
-			Tile.MeshRenderer.GetPropertyBlock(Tile.PropertyBlock);
-			Tile.PropertyBlock.SetFloat(Tile.TileOwner.TileData.fragmentationName, currentFadeStep / Tile.TileOwner.GridData.tileWrapFadeOutDuration);
+    private IEnumerator FadeOut() {
+        float endTime = Tile.TileOwner.GridData.tileWrapFadeOutDuration;
+        float currentFadeStep = 0;
 
-			currentFadeStep += Time.deltaTime;
-			Tile.MeshRenderer.SetPropertyBlock(Tile.PropertyBlock);
-			yield return null;
-		}
+        if (Tile.MeshRenderer == null) yield break;
+        if (Tile.MeshRenderer.sharedMaterial == null) yield break;
 
-		Tile.MeshRenderer.GetPropertyBlock(Tile.PropertyBlock);
-		Tile.PropertyBlock.SetFloat(Tile.TileOwner.TileData.fragmentationName, 1);
-		Tile.MeshRenderer.SetPropertyBlock(Tile.PropertyBlock);
-	}
+        while (currentFadeStep < endTime) {
+            // Fading out effect
+            Tile.MeshRenderer.GetPropertyBlock(Tile.PropertyBlock);
+            Tile.PropertyBlock.SetFloat(Tile.TileOwner.TileData.fragmentationName, currentFadeStep / Tile.TileOwner.GridData.tileWrapFadeOutDuration);
 
-	private IEnumerator FadeIn() {
-		float endTime = Tile.TileOwner.GridData.tileWrapFadeOutDuration;
-		float currentFadeStep = 0;
+            currentFadeStep += Time.deltaTime;
+            Tile.MeshRenderer.SetPropertyBlock(Tile.PropertyBlock);
+            yield return null;
+        }
 
-		if (Tile.MeshRenderer == null) yield break;
-		if (Tile.MeshRenderer.sharedMaterial == null) yield break;
+        Tile.MeshRenderer.GetPropertyBlock(Tile.PropertyBlock);
+        Tile.PropertyBlock.SetFloat(Tile.TileOwner.TileData.fragmentationName, 1);
+        Tile.MeshRenderer.SetPropertyBlock(Tile.PropertyBlock);
+    }
 
-		while (currentFadeStep < endTime) {
-			// Fading out effect
-			Tile.MeshRenderer.GetPropertyBlock(Tile.PropertyBlock);
-			Tile.PropertyBlock.SetFloat(Tile.TileOwner.TileData.fragmentationName, 1.0f - currentFadeStep / Tile.TileOwner.GridData.tileWrapFadeOutDuration);
+    private IEnumerator FadeIn() {
+        float endTime = Tile.TileOwner.GridData.tileWrapFadeOutDuration;
+        float currentFadeStep = 0;
 
-			currentFadeStep += Time.deltaTime;
-			Tile.MeshRenderer.SetPropertyBlock(Tile.PropertyBlock);
-			yield return null;
-		}
+        if (Tile.MeshRenderer == null) yield break;
+        if (Tile.MeshRenderer.sharedMaterial == null) yield break;
 
-		Tile.MeshRenderer.GetPropertyBlock(Tile.PropertyBlock);
-		Tile.PropertyBlock.SetFloat(Tile.TileOwner.TileData.fragmentationName, 0);
-		Tile.MeshRenderer.SetPropertyBlock(Tile.PropertyBlock);
-	}
+        while (currentFadeStep < endTime) {
+            // Fading out effect
+            Tile.MeshRenderer.GetPropertyBlock(Tile.PropertyBlock);
+            Tile.PropertyBlock.SetFloat(Tile.TileOwner.TileData.fragmentationName, 1.0f - currentFadeStep / Tile.TileOwner.GridData.tileWrapFadeOutDuration);
 
-	public void MoveDownInstant(bool fadeOut = false) {
+            currentFadeStep += Time.deltaTime;
+            Tile.MeshRenderer.SetPropertyBlock(Tile.PropertyBlock);
+            yield return null;
+        }
+
+        Tile.MeshRenderer.GetPropertyBlock(Tile.PropertyBlock);
+        Tile.PropertyBlock.SetFloat(Tile.TileOwner.TileData.fragmentationName, 0);
+        Tile.MeshRenderer.SetPropertyBlock(Tile.PropertyBlock);
+    }
+
+    public void MoveDownInstant(bool fadeOut = false) {
         if (isUp == false) return;
 
         if (transform == null)
             return;
-		
-		transform.position = new Vector3(transform.position.x, Tile.TileOwner.GridData.TileDownMovementOffset, transform.position.z);
 
-		if (fadeOut) {
-			Tile.MeshRenderer.GetPropertyBlock(Tile.PropertyBlock);
-			Tile.PropertyBlock.SetFloat(Tile.TileOwner.TileData.fragmentationName, 1);
-			Tile.MeshRenderer.SetPropertyBlock(Tile.PropertyBlock);
-		}
-	}
+        transform.position = new Vector3(transform.position.x, Tile.TileOwner.GridData.TileDownMovementOffset, transform.position.z);
+
+        if (fadeOut) {
+            Tile.MeshRenderer.GetPropertyBlock(Tile.PropertyBlock);
+            Tile.PropertyBlock.SetFloat(Tile.TileOwner.TileData.fragmentationName, 1);
+            Tile.MeshRenderer.SetPropertyBlock(Tile.PropertyBlock);
+        }
+    }
 
     // Temp function to 'fix' a bug
     public void ForceUp() {
-		StopAllCoroutines();
-	    Tile.transform.position = new Vector3(Tile.transform.position.x, 0, Tile.transform.position.z);
-	}
+        StopAllCoroutines();
+        Tile.transform.position = new Vector3(Tile.transform.position.x, 0, Tile.transform.position.z);
+    }
 }

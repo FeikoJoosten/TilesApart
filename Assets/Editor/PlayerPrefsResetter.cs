@@ -4,8 +4,8 @@ using UnityEditor;
 using UnityEngine;
 
 public class PlayerPrefsResetter : MonoBehaviour {
-	[MenuItem("PlayerPrefs/Reset player prefs")]
-	private static void ResetPlayerPrefs() {
-		PlayerPrefs.DeleteAll();
-	}
+    [MenuItem("PlayerPrefs/Reset player prefs")]
+    private static void ResetPlayerPrefs() {
+        PlayerPrefs.DeleteAll();
+    }
 }

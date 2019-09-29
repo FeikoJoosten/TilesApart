@@ -11,23 +11,23 @@ public partial class TileMover : MonoBehaviour {
     private Vector3 startScreenPosition;
     private Tile selectedTile;
     private GridManager gridManager;
-	public GridManager GridManager {
-		get {
-			if (gridManager != null) return gridManager;
+    public GridManager GridManager {
+        get {
+            if (gridManager != null) return gridManager;
 
-			GameObject[] gameObjects = gameObject.scene.GetRootGameObjects();
-			for (int i = 0; i < gameObjects.Length; i++) {
-				if (gameObjects[i].GetComponent<GridManager>() != null) {
-					gridManager = gameObjects[i].GetComponent<GridManager>();
-					break;
-				}
-			}
-			return gridManager;
-		}
-		set => gridManager = value;
-	}
+            GameObject[] gameObjects = gameObject.scene.GetRootGameObjects();
+            for (int i = 0; i < gameObjects.Length; i++) {
+                if (gameObjects[i].GetComponent<GridManager>() != null) {
+                    gridManager = gameObjects[i].GetComponent<GridManager>();
+                    break;
+                }
+            }
+            return gridManager;
+        }
+        set => gridManager = value;
+    }
 
-	public void EnableInput() {
+    public void EnableInput() {
         inputEnabled = true;
     }
 
@@ -37,37 +37,37 @@ public partial class TileMover : MonoBehaviour {
 
     private void Start() {
         // Get grid manager reference for later use
-	    Player.OnPlayerWon += OnPlayerWin;
-	    GameMenus.OnPauseMenuOpened += DisableInput;
-	    GameMenus.OnPauseMenuClosed += EnableInput;
+        Player.OnPlayerWon += OnPlayerWin;
+        GameMenus.OnPauseMenuOpened += DisableInput;
+        GameMenus.OnPauseMenuClosed += EnableInput;
     }
 
-	private void OnDestroy() {
-		Player.OnPlayerWon -= OnPlayerWin;
-		GameMenus.OnPauseMenuOpened -= DisableInput;
-		GameMenus.OnPauseMenuClosed -= EnableInput;
-	}
+    private void OnDestroy() {
+        Player.OnPlayerWon -= OnPlayerWin;
+        GameMenus.OnPauseMenuOpened -= DisableInput;
+        GameMenus.OnPauseMenuClosed -= EnableInput;
+    }
 
-	private void OnPlayerWin(string sceneName) {
-		DisableInput();
-	}
+    private void OnPlayerWin(string sceneName) {
+        DisableInput();
+    }
 
     private void Update() {
         // Only update things when input is enabled
-        if (inputEnabled == false 
-			|| GridManager.IsLevelRisingUp
-			|| GridManager.IsGridMoving
-			|| GridManager.PlayerObject.isMoving 
-			|| GridManager.PlayerObject.isDead
-			|| GridManager.PlayerObject.hasWon
-			|| LevelManager.Instance.PreLoader.isTransitioning
-			|| Application.isFocused == false) {
+        if (inputEnabled == false
+            || GridManager.IsLevelRisingUp
+            || GridManager.IsGridMoving
+            || GridManager.PlayerObject.isMoving
+            || GridManager.PlayerObject.isDead
+            || GridManager.PlayerObject.hasWon
+            || LevelManager.Instance.PreLoader.isTransitioning
+            || Application.isFocused == false) {
             return;
         }
 
-		// In case we are still in a move and it's not detected properly
-		if (GridManager.tempTile != null)
-			if (GridManager.tempTile.activeSelf) return;
+        // In case we are still in a move and it's not detected properly
+        if (GridManager.tempTile != null)
+            if (GridManager.tempTile.activeSelf) return;
 
         // Make sure that the game never accidentally blocks input
         if (Input.GetMouseButton(0) == false && hasPressed) {
@@ -76,7 +76,7 @@ public partial class TileMover : MonoBehaviour {
 
         // If the player starts touching the screen
         if (Input.GetMouseButton(0) && hasPressed == false) {
-                OnStartTouch();
+            OnStartTouch();
         }
 
         // When the player is dragging
@@ -92,51 +92,50 @@ public partial class TileMover : MonoBehaviour {
             }
             if (onlyDisplayLine) {
                 if (inputDirection.magnitude < GridManager.GridData.minimumDraggingRange) {
-                   //UpdateNeighboursBack(inputDirection);
+                    //UpdateNeighboursBack(inputDirection);
                 }
             }
 
             // Move tiles once you release the mouse button
-	        if (Input.GetMouseButtonUp(0) == false) return;
+            if (Input.GetMouseButtonUp(0) == false) return;
 
-	        if (inputDirection.magnitude > GridManager.GridData.minimumDraggingRange) {
-		        ActivateTileMovement(inputDirection);
-	        }
-	        ResetDragginInformation();
+            if (inputDirection.magnitude > GridManager.GridData.minimumDraggingRange) {
+                ActivateTileMovement(inputDirection);
+            }
+            ResetDragginInformation();
         }
     }
-	
+
     /// <summary> When the player starts touching the screen </summary>
     private void OnStartTouch() {
         // Raycast to touched object
         Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
 
-	    if (Physics.Raycast(ray, out RaycastHit hit)) {
+        if (Physics.Raycast(ray, out RaycastHit hit)) {
             // If the drag starts at an object
             selectedTile = hit.collider.gameObject.GetComponent<Tile>();
-		    if (selectedTile == null || selectedTile.tileType == TileType.End || selectedTile.tileType == TileType.Start) return;
+            if (selectedTile == null || selectedTile.tileType == TileType.End || selectedTile.tileType == TileType.Start) return;
 
-		    if (Application.isFocused == false) return;
+            if (Application.isFocused == false) return;
 
-		    // Save drag start data
-		    startScreenPosition = Input.mousePosition;
-		    isDragging = true;
-		    hasPressed = true;
+            // Save drag start data
+            startScreenPosition = Input.mousePosition;
+            isDragging = true;
+            hasPressed = true;
 
-		    // Recolor tiles
-		    neighbours.Clear();
-		    neighbours = GetCrossNeighbours(selectedTile);
-		    ColorFadeIn(neighbours);
-	    }
+            // Recolor tiles
+            neighbours.Clear();
+            neighbours = GetCrossNeighbours(selectedTile);
+            ColorFadeIn(neighbours);
+        }
     }
-	
+
     /// <summary> Called when tile movement is triggered </summary>
     private void ActivateTileMovement(Vector3 inputDirection) {
         // Lock to axis
         if (Mathf.Abs(inputDirection.x) > Mathf.Abs(inputDirection.z)) {
             inputDirection = inputDirection.x >= 0 ? Vector3.right : Vector3.left;
-        }
-        else {
+        } else {
             inputDirection = inputDirection.z >= 0 ? Vector3.forward : Vector3.back;
         }
 
@@ -154,11 +153,11 @@ public partial class TileMover : MonoBehaviour {
             selectedTile.MoveTile(inputDirection);
         }
     }
-	
+
     /// <summary> Reset dragging information </summary>
     private void ResetDragginInformation() {
-		// Reset variables
-		isDragging = false;
+        // Reset variables
+        isDragging = false;
         hasPressed = false;
         selectedTile = null;
 

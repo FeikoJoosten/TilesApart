@@ -3,13 +3,11 @@ using System.Collections.Generic;
 using UnityEngine;
 
 [System.Serializable]
-public struct GridHolder
-{
+public struct GridHolder {
     public List<Transform> tiles;
 }
 
-public partial class GridManager : MonoBehaviour
-{
+public partial class GridManager : MonoBehaviour {
     [Header("Grid data settings")]
     [SerializeField]
     private GridData gridData = null;
@@ -45,16 +43,16 @@ public partial class GridManager : MonoBehaviour
     public bool IsGridMoving {
         get {
             {
-                if(grid.rows == null) {
+                if (grid.rows == null) {
                     return false;
                 }
 
-                for(int x = 0; x < grid.rows.Count; x++) {
-                    for(int y = 0; y < grid.rows[x].row.Count; y++) {
-                        if(grid.rows[x].row[y] == null)
+                for (int x = 0; x < grid.rows.Count; x++) {
+                    for (int y = 0; y < grid.rows[x].row.Count; y++) {
+                        if (grid.rows[x].row[y] == null)
                             continue;
 
-                        if(grid.rows[x].row[y].moving) {
+                        if (grid.rows[x].row[y].moving) {
                             return true;
                         }
                     }
@@ -67,7 +65,7 @@ public partial class GridManager : MonoBehaviour
     private Player playerObject = null;
     public Player PlayerObject {
         get {
-            if(playerObject == null) {
+            if (playerObject == null) {
                 CheckForPlayer();
             }
 
@@ -83,15 +81,15 @@ public partial class GridManager : MonoBehaviour
     public IEnumerator RiseLevel(bool instant = false) {
         IsLevelRisingUp = true;
 
-        for(int x = 0; x < grid.rows.Count; x++) {
-            for(int y = 0; y < grid.rows[x].row.Count; y++) {
-                if(grid.rows[x].row[y] == null)
+        for (int x = 0; x < grid.rows.Count; x++) {
+            for (int y = 0; y < grid.rows[x].row.Count; y++) {
+                if (grid.rows[x].row[y] == null)
                     continue;
 
-                if(grid.rows[x].row[y].tileType == TileType.Start || grid.rows[x].row[y].TileAnimator == false)
+                if (grid.rows[x].row[y].tileType == TileType.Start || grid.rows[x].row[y].TileAnimator == false)
                     continue;
 
-                if(instant) {
+                if (instant) {
                     //grid.rows[x].row[y].tileAnimator.MoveDownInstant(); Nothing yet, just copied SinkLevel
                     continue;
                 }
@@ -101,26 +99,26 @@ public partial class GridManager : MonoBehaviour
         }
 
         // Wait for the entire level to raise back up
-        while(true) {
+        while (true) {
             bool shouldWait = false;
-            for(int x = 0; x < grid.rows.Count; x++) {
-                if(shouldWait == true) {
+            for (int x = 0; x < grid.rows.Count; x++) {
+                if (shouldWait == true) {
                     break;
                 }
 
-                for(int y = 0; y < grid.rows[x].row.Count; y++) {
-                    if(grid.rows[x].row[y] == null) {
+                for (int y = 0; y < grid.rows[x].row.Count; y++) {
+                    if (grid.rows[x].row[y] == null) {
                         continue;
                     }
 
-                    if(grid.rows[x].row[y].TileAnimator.isUp == false) {
+                    if (grid.rows[x].row[y].TileAnimator.isUp == false) {
                         shouldWait = true;
                         break;
                     }
                 }
             }
 
-            if(shouldWait == false) {
+            if (shouldWait == false) {
                 break;
             }
 
@@ -132,7 +130,7 @@ public partial class GridManager : MonoBehaviour
     }
 
     public void AlignPlayerRotation() {
-        if(startTile)
+        if (startTile)
             PlayerObject.transform.rotation = startTile.transform.rotation;
     }
 
@@ -141,11 +139,11 @@ public partial class GridManager : MonoBehaviour
     }
 
     public Tile GetTileAtIndex(Vector2Int tileIndex) {
-        if(tileIndex.x >= grid.rows.Count || tileIndex.x < 0 || tileIndex.y < 0) {
+        if (tileIndex.x >= grid.rows.Count || tileIndex.x < 0 || tileIndex.y < 0) {
             return null;
         }
 
-        if(tileIndex.y >= grid.rows[tileIndex.x].row.Count) {
+        if (tileIndex.y >= grid.rows[tileIndex.x].row.Count) {
             return null;
         }
 
@@ -157,7 +155,7 @@ public partial class GridManager : MonoBehaviour
     }
 
     public Vector3 GetTileLocalPosition(Vector2Int tileIndex) {
-        if(defaultTile == null) {
+        if (defaultTile == null) {
             Debug.Log("The default tile has not been assigned");
             return new Vector3(0, -5, 0);
         }
@@ -181,18 +179,18 @@ public partial class GridManager : MonoBehaviour
     }
 
     public void UpdateTileIndexLocation(Vector2Int oldIndex, Vector2Int newIndex, Tile tileToUpdate, bool ignoreOldIndex = false) {
-        if(newIndex.x >= grid.rows.Count || newIndex.x < 0 || newIndex.y < 0) {
+        if (newIndex.x >= grid.rows.Count || newIndex.x < 0 || newIndex.y < 0) {
             return;
         }
 
-        if(newIndex.y >= grid.rows[newIndex.x].row.Count) {
+        if (newIndex.y >= grid.rows[newIndex.x].row.Count) {
             return;
         }
 
-        if(grid.rows[newIndex.x].row[newIndex.y] == null) {
+        if (grid.rows[newIndex.x].row[newIndex.y] == null) {
             grid.rows[newIndex.x].row[newIndex.y] = tileToUpdate;
 
-            if(ignoreOldIndex == false)
+            if (ignoreOldIndex == false)
                 grid.rows[oldIndex.x].row[oldIndex.y] = null;
         } else {
             grid.rows[newIndex.x].row[newIndex.y] = tileToUpdate;
@@ -204,11 +202,11 @@ public partial class GridManager : MonoBehaviour
     }
 
     public void EmptyTileIndexLocation(Vector2Int tileIndex) {
-        if(tileIndex.x >= grid.rows.Count || tileIndex.x < 0 || tileIndex.y < 0) {
+        if (tileIndex.x >= grid.rows.Count || tileIndex.x < 0 || tileIndex.y < 0) {
             return;
         }
 
-        if(tileIndex.y >= grid.rows[tileIndex.x].row.Count) {
+        if (tileIndex.y >= grid.rows[tileIndex.x].row.Count) {
             return;
         }
 
@@ -216,24 +214,24 @@ public partial class GridManager : MonoBehaviour
     }
 
     public void SinkLevel(bool instant = false, bool fadeLevel = false, bool ignoreStartTile = true, bool ignoreEndTile = true) {
-        for(int x = 0; x < grid.rows.Count; x++) {
-            for(int y = 0; y < grid.rows[x].row.Count; y++) {
-                if(grid.rows[x].row[y] == null)
+        for (int x = 0; x < grid.rows.Count; x++) {
+            for (int y = 0; y < grid.rows[x].row.Count; y++) {
+                if (grid.rows[x].row[y] == null)
                     continue;
 
-                if(grid.rows[x].row[y].TileAnimator == false)
+                if (grid.rows[x].row[y].TileAnimator == false)
                     continue;
 
-                if(ignoreStartTile && grid.rows[x].row[y].tileType == TileType.Start) {
+                if (ignoreStartTile && grid.rows[x].row[y].tileType == TileType.Start) {
                     continue;
                 }
 
-                if(instant) {
+                if (instant) {
                     grid.rows[x].row[y].TileAnimator.MoveDownInstant(fadeLevel);
                     continue;
                 }
 
-                if(ignoreEndTile && grid.rows[x].row[y].tileType == TileType.End)
+                if (ignoreEndTile && grid.rows[x].row[y].tileType == TileType.End)
                     continue;
 
                 grid.rows[x].row[y].TileAnimator.MoveDown(true, fadeLevel);
@@ -245,16 +243,16 @@ public partial class GridManager : MonoBehaviour
         // We need to save the tiles to reset in a separate list, otherwise they can overwrite each other
         List<Tile> tilesToReset = new List<Tile>();
 
-        for(int x = 0; x < grid.rows.Count; x++) {
-            for(int y = 0; y < grid.rows[x].row.Count; y++) {
-                if(grid.rows[x].row[y] == null) continue;
+        for (int x = 0; x < grid.rows.Count; x++) {
+            for (int y = 0; y < grid.rows[x].row.Count; y++) {
+                if (grid.rows[x].row[y] == null) continue;
 
                 tilesToReset.Add(grid.rows[x].row[y]);
             }
         }
 
-        for(int x = 0; x < grid.rows.Count; x++) {
-            for(int y = 0; y < grid.rows[x].row.Count; y++) {
+        for (int x = 0; x < grid.rows.Count; x++) {
+            for (int y = 0; y < grid.rows[x].row.Count; y++) {
                 grid.rows[x].row[y] = null;
             }
         }

@@ -2,68 +2,76 @@
 using UnityEngine.SceneManagement;
 
 public class ChapterArtCameraUpdater : MonoBehaviour {
-	private Canvas renderCanvas = null;
+    private Canvas renderCanvas = null;
 
-	private void Awake() {
-		renderCanvas = GetComponent<Canvas>();
+    private void Awake() {
+        renderCanvas = GetComponent<Canvas>();
 
-		if (renderCanvas == null) {
-			Destroy(this);
-			return;
-		}
+        if (renderCanvas == null) {
+            Destroy(this);
+            return;
+        }
 
-		PreLoader.OnLevelTransition += UpdateCanvasCamera;
+        PreLoader.OnNextCameraActived += UpdateCanvasCamera;
+        //LevelManager.OnCurrentGameSceneChanged += UpdateCanvasCamera;
+        //LevelManager.OnCorruptedLoadDetected += UpdateCanvasCamera;
 
-		UpdateCanvasCamera();
-	}
+        UpdateCanvasCamera();
+    }
 
-	private void OnDestroy() {
-		PreLoader.OnLevelTransition -= UpdateCanvasCamera;
-	}
+    private void OnDestroy() {
+        //LevelManager.OnCurrentGameSceneChanged -= UpdateCanvasCamera;
+        //LevelManager.OnCorruptedLoadDetected -= UpdateCanvasCamera;
+        PreLoader.OnNextCameraActived -= UpdateCanvasCamera;
+    }
 
-	private void OnApplicationFocus(bool hasFocus) {
-		if (hasFocus == false) return;
+    private void OnApplicationFocus(bool hasFocus) {
+        if (hasFocus == false) return;
 
-		UpdateCanvasCamera();
-	}
+        //UpdateCanvasCamera();
+    }
 
-	private void OnApplicationPause(bool pauseStatus) {
-		if (pauseStatus) return;
+    private void OnApplicationPause(bool pauseStatus) {
+        if (pauseStatus) return;
 
-		UpdateCanvasCamera();
-	}
+        //UpdateCanvasCamera();
+    }
 
-	private void LateUpdate() {
-		if (renderCanvas.worldCamera == null) {
-			renderCanvas.worldCamera = Camera.current;
-		}
-			//UpdateCanvasCamera(SceneManager.GetActiveScene());
-	}
+    private void Update() {
+        if (renderCanvas.worldCamera == null) {
+            renderCanvas.worldCamera = Camera.current;
+            //LevelManager.Instance.TriggerCorruptedLoadDetected();
+            Debug.Log("Updating because worldcam == null");
+        }
 
-	private void UpdateCanvasCamera() {
-		Scene sceneToUse = SceneManager.GetSceneByName(LevelManager.Instance.GetCurrentLevelName());
+        UpdateCanvasCamera(SceneManager.GetActiveScene());
+    }
 
-		if (renderCanvas.worldCamera != null) {
-			if (sceneToUse.buildIndex == renderCanvas.worldCamera.gameObject.scene.buildIndex) return;
-		}
+    private void UpdateCanvasCamera() {
+        Scene sceneToUse = LevelManager.Instance.CurrentGameScene;
 
-		UpdateCanvasCamera(sceneToUse);
-	}
+        if (renderCanvas.worldCamera != null) {
+            if (sceneToUse.buildIndex == renderCanvas.worldCamera.gameObject.scene.buildIndex) {
+                UpdateCanvasCamera(LevelManager.Instance.CurrentGameScene);
+            }
+        } else
+            UpdateCanvasCamera(sceneToUse);
+    }
 
-	private void UpdateCanvasCamera(Scene sceneToUse) {
-		if (sceneToUse.IsValid() == false) return;
+    private void UpdateCanvasCamera(Scene sceneToUse) {
+        if (sceneToUse.IsValid() == false) return;
 
-		foreach (GameObject rootObject in sceneToUse.GetRootGameObjects()) {
-			Camera cameraToUse = rootObject.GetComponent<Camera>();
+        foreach (GameObject rootObject in sceneToUse.GetRootGameObjects()) {
+            Camera cameraToUse = rootObject.GetComponent<Camera>();
 
-			if (cameraToUse == null) continue;
+            if (cameraToUse == null) continue;
 
-			if (cameraToUse.gameObject.activeSelf == false) {
-				continue;
-			}
+            if (cameraToUse.gameObject.activeSelf == false) {
+                cameraToUse.gameObject.SetActive(true);
+            }
 
-			renderCanvas.worldCamera = cameraToUse;
-			break;
-		}
-	}
+            renderCanvas.worldCamera = cameraToUse;
+            break;
+        }
+    }
 }
