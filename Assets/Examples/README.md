@@ -4,10 +4,8 @@ During the development process of Tiles Apart multiple tools were created to mak
 This extends from custom Unity editor property windows, to quality of life functionality. If something could be automated or improved a tool is most likely available for you.
 
 * [Custom Editor windows](#custom-editor-windows)
-* [Enter Events](#enter-events)
-* [Enter Conditions](#enter-conditions)
-* [Text Arguments](#text-arguments)
-* [Supported input parameters](#supported-input-parameters)
+  * [The Grid Editor](#grid-editor)
+  * [The Tile Editor](#tile-editor)
 
 ## Custom editor windows <a name="custom-editor-windows"/>
 
