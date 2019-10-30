@@ -14,9 +14,11 @@ public class LoadingText : MonoBehaviour {
 
     private Text loadingText;
     private Coroutine loadingCoroutine = null;
+    private WaitForSeconds waitForSeconds;
 
     private void Awake() {
         loadingText = GetComponent<Text>();
+        waitForSeconds = new WaitForSeconds(timeBetweenUpdates);
 
         FadeCamera.OnFadeStarted += OnFadeStarted;
         FadeCamera.OnFadeCompleted += OnFadeCompleted;
@@ -68,7 +70,7 @@ public class LoadingText : MonoBehaviour {
             if (i == maxDotCount)
                 i = 0;
 
-            yield return new WaitForSeconds(timeBetweenUpdates);
+            yield return waitForSeconds;
         }
     }
 

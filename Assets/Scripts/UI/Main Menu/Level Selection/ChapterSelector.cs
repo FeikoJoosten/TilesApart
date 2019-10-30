@@ -17,7 +17,7 @@ public class ChapterSelector : MonoBehaviour {
     protected MainMenuHelper mainMenuHelper = null;
 
     protected virtual void Awake() {
-        if (chapterText != null && chapterNumber < LevelManager.Instance.Chapters.Count) {
+        if (chapterText != null && chapterNumber < LevelManager.Instance.ChaptersCount) {
             chapterText.text = LevelManager.Instance.GetChapterCompletionStatus(chapterNumber) || Debug.isDebugBuild ? LevelManager.Instance.Chapters[chapterNumber].chapterName : "LOCKED";
         }
 
@@ -35,15 +35,15 @@ public class ChapterSelector : MonoBehaviour {
             }
         }
 
-        List<string> levelNames = LevelManager.Instance.GetChapterLevels(chapterNumber);
+        List<string> levelNames = LevelManager.Instance.Chapters[chapterNumber].levels;
         // Cleanup the levelNames list, to make sure we do not accidentally create a button for a unloadable level
-        for (int i = levelNames.Count - 1; i >= 0; i--) {
-            if (levelNames[i].Length > 0) continue;
+        for (int i = LevelManager.Instance.Chapters[chapterNumber].LevelsCount - 1; i >= 0; i--) {
+            if (!string.IsNullOrEmpty(levelNames[i])) continue;
 
             levelNames.RemoveAt(i);
         }
 
-        for (int i = 0; i < levelNames.Count; i++) {
+        for (int i = 0; i < LevelManager.Instance.Chapters[chapterNumber].LevelsCount; i++) {
             LevelSelector selector = Instantiate(levelSelectorPrefab, levelSelectionHolder);
             bool isUnlocked = true;
             bool isCompleted = LevelManager.Instance.GetLevelCompletionStatus(levelNames[i]);

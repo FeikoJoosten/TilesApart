@@ -61,8 +61,9 @@ public class ChapterArtCameraUpdater : MonoBehaviour {
     private void UpdateCanvasCamera(Scene sceneToUse) {
         if (sceneToUse.IsValid() == false) return;
 
-        foreach (GameObject rootObject in sceneToUse.GetRootGameObjects()) {
-            Camera cameraToUse = rootObject.GetComponent<Camera>();
+        GameObject[] rootObjects = sceneToUse.GetRootGameObjects();
+        for (int i = 0, length = rootObjects.Length; i < length; i++) {
+            Camera cameraToUse = rootObjects[i].GetComponent<Camera>();
 
             if (cameraToUse == null) continue;
 

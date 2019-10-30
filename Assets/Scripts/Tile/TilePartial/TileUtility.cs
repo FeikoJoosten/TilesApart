@@ -8,7 +8,7 @@ public partial class Tile : MonoBehaviour {
 
     private Vector2Int GetTileGroupStart(Vector2Int startTile, Vector2Int movementDir) {
         // Inverse movement direction to check backwards
-        Vector2Int inverseDir = new Vector2Int(-1 * movementDir.x, -1 * movementDir.y);
+        Vector2Int inverseDir = movementDir * -1;
 
         // Start from first tile
         Vector2Int groupStart = startTile;
@@ -43,11 +43,11 @@ public partial class Tile : MonoBehaviour {
             return attributeTile.MoveValidate();
         }
 
-        Vector2Int currentIndex = new Vector2Int(-1, -1);
+        Vector2Int currentIndex = Vector2Extensions.Minus1Int;
         int stepCount = 0;
 
         while (currentIndex != startIndex) {
-            currentIndex = currentIndex == new Vector2Int(-1, -1) ? GetNextTileIndex(startIndex, movementDirection, true) : GetNextTileIndex(currentIndex, movementDirection, true);
+            currentIndex = currentIndex == Vector2Extensions.Minus1Int ? GetNextTileIndex(startIndex, movementDirection, true) : GetNextTileIndex(currentIndex, movementDirection, true);
 
             Tile tileAtIndex = TileOwner.GetTileAtIndex(currentIndex);
 
@@ -68,13 +68,17 @@ public partial class Tile : MonoBehaviour {
         Vector2Int newIndex = currentIndex;
 
         if (currentIndex.x <= TileOwner.GridSize.x - 1 && currentIndex.x + movementDirection.x > TileOwner.GridSize.x - 1) {
-            newIndex = new Vector2Int(0, currentIndex.y);
+            newIndex.x = 0;
+            newIndex.y = currentIndex.y;
         } else if (currentIndex.x >= 0 && currentIndex.x + movementDirection.x < 0) {
-            newIndex = new Vector2Int(TileOwner.GridSize.x - 1, currentIndex.y);
+            newIndex.x = TileOwner.GridSize.x - 1;
+            newIndex.y = currentIndex.y;
         } else if (currentIndex.y <= TileOwner.GridSize.y - 1 && currentIndex.y + movementDirection.y > TileOwner.GridSize.y - 1) {
-            newIndex = new Vector2Int(currentIndex.x, 0);
+            newIndex.x = currentIndex.x;
+            newIndex.y = 0;
         } else if (currentIndex.y >= 0 && currentIndex.y + movementDirection.y < 0) {
-            newIndex = new Vector2Int(currentIndex.x, TileOwner.GridSize.y - 1);
+            newIndex.x = currentIndex.x;
+            newIndex.y = TileOwner.GridSize.y - 1;
         } else {
             newIndex += movementDirection;
         }

@@ -6,7 +6,7 @@ public class EnterLastPlayedLevel : MonoBehaviour {
     public void OpenLastPlayedLevel() {
         lastPlayedLevelName = LevelManager.Instance.GetLevelName(LevelManager.Instance.LastPlayedLevel.x, LevelManager.Instance.LastPlayedLevel.y);
 
-        if (lastPlayedLevelName.Length == 0) {
+        if (string.IsNullOrEmpty(lastPlayedLevelName)) {
             lastPlayedLevelName = LevelManager.Instance.GetLevelName(0, 0);
         }
 

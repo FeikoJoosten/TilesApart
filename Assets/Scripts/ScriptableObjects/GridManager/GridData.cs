@@ -7,12 +7,45 @@ public class GridData : ScriptableObject {
     [SerializeField]
     private AnimationCurve tileVerticalMovement = new AnimationCurve(new Keyframe(0, 0), new Keyframe(1, 1));
     public AnimationCurve TileVerticalMovement => tileVerticalMovement;
+
+    private int? tileVerticalMovementKeyCount;
+    public int TileVerticalMovementKeyCount {
+        get {
+            if (!tileVerticalMovementKeyCount.HasValue)
+                tileVerticalMovementKeyCount = tileVerticalMovement.length;
+
+            return tileVerticalMovementKeyCount.Value;
+        }
+    }
+
     [SerializeField]
     private AnimationCurve tileHorizontalMovement = new AnimationCurve(new Keyframe(0, 0), new Keyframe(1, 1));
     public AnimationCurve TileHorizontalMovement => tileHorizontalMovement;
+
+    private int? tileHorizontalMovementKeyCount;
+    public int TileHorizontalMovementKeyCount {
+        get {
+            if(!tileHorizontalMovementKeyCount.HasValue)
+                tileHorizontalMovementKeyCount = tileHorizontalMovement.length;
+
+            return tileHorizontalMovementKeyCount.Value;
+        }
+    }
+
     [SerializeField]
     private AnimationCurve tileFreeMovement = new AnimationCurve(new Keyframe(0, 0), new Keyframe(1, 1));
     public AnimationCurve TileFreeMovement => tileFreeMovement;
+
+    private int? tileFreeMovementKeyCount;
+    public int TileFreeMovementKeyCount {
+        get {
+            if(!tileFreeMovementKeyCount.HasValue)
+                tileFreeMovementKeyCount = tileFreeMovement.length;
+
+            return tileFreeMovementKeyCount.Value;
+        }
+    }
+
     [SerializeField]
     private float tileDownMovementOffset = -3.5f;
     public float TileDownMovementOffset => tileDownMovementOffset;

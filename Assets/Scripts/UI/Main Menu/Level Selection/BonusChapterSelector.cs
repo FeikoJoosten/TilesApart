@@ -8,11 +8,11 @@ public class BonusChapterSelector : ChapterSelector {
     // Use this for initialization
     protected override void Awake() {
         if (chapterText != null) {
-            chapterText.text = LevelManager.Instance.GetChapterCompletionStatus(LevelManager.Instance.Chapters.Count) || Debug.isDebugBuild ? textToUse : "LOCKED";
+            chapterText.text = LevelManager.Instance.GetChapterCompletionStatus(LevelManager.Instance.ChaptersCount) || Debug.isDebugBuild ? textToUse : "LOCKED";
         }
 
         if (buttonToUse != null && Debug.isDebugBuild == false) {
-            buttonToUse.interactable = LevelManager.Instance.GetChapterCompletionStatus(LevelManager.Instance.Chapters.Count);
+            buttonToUse.interactable = LevelManager.Instance.GetChapterCompletionStatus(LevelManager.Instance.ChaptersCount);
         }
     }
 
@@ -27,13 +27,13 @@ public class BonusChapterSelector : ChapterSelector {
 
         List<string> levelNames = LevelManager.Instance.GetBonusLevels();
         // Cleanup the levelNames list, to make sure we do not accidentally create a button for a unloadable level
-        for (int i = levelNames.Count - 1; i >= 0; i--) {
-            if (levelNames[i].Length > 0) continue;
+        for (int i = LevelManager.Instance.BonusChaptersCount - 1; i >= 0; i--) {
+            if (!string.IsNullOrEmpty(levelNames[i])) continue;
 
             levelNames.RemoveAt(i);
         }
 
-        for (int i = 0; i < levelNames.Count; i++) {
+        for (int i = 0; i < LevelManager.Instance.BonusChaptersCount; i++) {
             LevelSelector selector = Instantiate(levelSelectorPrefab, levelSelectionHolder);
             bool isCompleted = LevelManager.Instance.GetLevelCompletionStatus(levelNames[i]);
 

@@ -18,7 +18,7 @@ public enum TileType {
 [RequireComponent(typeof(MeshRenderer))]
 [RequireComponent(typeof(TileAnimator))]
 public partial class Tile : MonoBehaviour {
-    public static Vector2Int originalTileMover = new Vector2Int(-1, -1);
+    public static Vector2Int originalTileMover = Vector2Extensions.Minus1Int;
     private static Vector2Int lastMovementDirection;
     public static event System.Action<Vector2Int, Vector2Int> OnTileStartedMoving = delegate { };
     public static event System.Action<Vector2Int> OnTileEndedMoving = delegate { };
@@ -33,18 +33,19 @@ public partial class Tile : MonoBehaviour {
             if (tileOwner != null) return tileOwner;
 
             GameObject[] gameObjects = gameObject.scene.GetRootGameObjects();
-            for (int i = 0; i < gameObjects.Length; i++) {
-                if (gameObjects[i].GetComponent<GridManager>() != null) {
-                    tileOwner = gameObjects[i].GetComponent<GridManager>();
-                    break;
-                }
+            for (int i = 0, length = gameObjects.Length; i < length; i++) {
+                GridManager manager = gameObjects[i].GetComponent<GridManager>();
+                if (manager == null) continue;
+
+                tileOwner = manager;
+                break;
             }
             return tileOwner;
         }
         set { tileOwner = value; }
     }
 
-    [ReadOnly]
+    [ReadOnly, HideInInspector]
     public TileType previousTileType;
     [ReadOnly]
     public bool[] directions = new bool[4];
@@ -59,7 +60,7 @@ public partial class Tile : MonoBehaviour {
     private Material[] originalSharedMaterials;
     public Material[] OriginalSharedMaterials => originalSharedMaterials;
     private MaterialPropertyBlock propertyBlock = null;
-    public MaterialPropertyBlock PropertyBlock => propertyBlock;
+    public MaterialPropertyBlock PropertyBlock => propertyBlock ?? (propertyBlock = new MaterialPropertyBlock());
     private string tileColor1ShaderName = "Color_22D9D809";
     public string TileColor1ShaderName => tileColor1ShaderName;
     private string tileColor2ShaderName = "Color_B82826F4";
@@ -71,6 +72,17 @@ public partial class Tile : MonoBehaviour {
 
     // Used to save the tile's default colors
     public List<Color> startColors { get; private set; } = new List<Color>();
+
+    private int? startColorsLength;
+
+    public int StartColorsLength {
+        get {
+            if (!startColorsLength.HasValue)
+                startColorsLength = startColors.Count;
+
+            return startColorsLength.Value;
+        }
+    }
 
     [SerializeField]
     public Attributes attribute = Attributes.None;
@@ -95,32 +107,31 @@ public partial class Tile : MonoBehaviour {
         meshRenderer = GetComponent<MeshRenderer>();
         originalSharedMaterials = meshRenderer.sharedMaterials;
 
-        startingTileIndex = tileIndex;
 
         if (meshRenderer.sharedMaterial == null) return;
 
-        if (propertyBlock == null) {
-            propertyBlock = new MaterialPropertyBlock();
-        }
-
-        meshRenderer.GetPropertyBlock(propertyBlock);
+        meshRenderer.GetPropertyBlock(PropertyBlock);
 
         if (meshRenderer.sharedMaterial.HasProperty(tileColor1ShaderName))
-            propertyBlock.SetColor(tileColor1ShaderName, meshRenderer.sharedMaterial.GetColor(tileColor1ShaderName));
+            PropertyBlock.SetColor(tileColor1ShaderName, meshRenderer.sharedMaterial.GetColor(tileColor1ShaderName));
         if (meshRenderer.sharedMaterial.HasProperty(tileColor2ShaderName))
-            propertyBlock.SetColor(tileColor2ShaderName, meshRenderer.sharedMaterial.GetColor(tileColor2ShaderName));
+            PropertyBlock.SetColor(tileColor2ShaderName, meshRenderer.sharedMaterial.GetColor(tileColor2ShaderName));
         if (meshRenderer.sharedMaterial.HasProperty(tileColor3ShaderName))
-            propertyBlock.SetColor(tileColor3ShaderName, meshRenderer.sharedMaterial.GetColor(tileColor3ShaderName));
+            PropertyBlock.SetColor(tileColor3ShaderName, meshRenderer.sharedMaterial.GetColor(tileColor3ShaderName));
         if (meshRenderer.sharedMaterial.HasProperty(tileColor4ShaderName))
-            propertyBlock.SetColor(tileColor4ShaderName, meshRenderer.sharedMaterial.GetColor(tileColor4ShaderName));
+            PropertyBlock.SetColor(tileColor4ShaderName, meshRenderer.sharedMaterial.GetColor(tileColor4ShaderName));
 
-        meshRenderer.SetPropertyBlock(propertyBlock);
+        meshRenderer.SetPropertyBlock(PropertyBlock);
 
         FixTileColor();
 
-        for (int i = 0; i < TileOwner.TileData.materialColorNames.Length; i++) {
-            startColors.Add(propertyBlock.GetColor(TileOwner.TileData.materialColorNames[i]));
+        for (int i = 0, length = TileOwner.TileData.materialColorNames.Length; i < length; i++) {
+            startColors.Add(PropertyBlock.GetColor(TileOwner.TileData.materialColorNames[i]));
         }
+    }
+
+    private void Start() {
+        startingTileIndex = tileIndex;
     }
 
     private void OnSceneLoaded(Scene loadedScene, LoadSceneMode sceneLoadMode) {
@@ -133,18 +144,18 @@ public partial class Tile : MonoBehaviour {
     }
 
     private void OnLevelStart() {
-        Tile.originalTileMover = new Vector2Int(-1, -1);
-        Tile.lastMovementDirection = new Vector2Int();
+        Tile.originalTileMover = Vector2Extensions.Minus1Int;
+        Tile.lastMovementDirection = Vector2Extensions.Zero;
     }
 
     private void OnRestartLevel(int moveCount) {
-        Tile.originalTileMover = new Vector2Int(-1, -1);
-        Tile.lastMovementDirection = new Vector2Int();
+        Tile.originalTileMover = Vector2Extensions.Minus1Int;
+        Tile.lastMovementDirection = Vector2Extensions.Zero;
     }
 
     private void OnBackToMainMenu() {
-        Tile.originalTileMover = new Vector2Int(-1, -1);
-        Tile.lastMovementDirection = new Vector2Int();
+        Tile.originalTileMover = Vector2Extensions.Minus1Int;
+        Tile.lastMovementDirection = Vector2Extensions.Zero;
     }
 
     private void OnDestroy() {
@@ -161,7 +172,7 @@ public partial class Tile : MonoBehaviour {
     }
 
     private void SetTileIndex(Vector2Int newTileIndex, bool useEditorCode = false) {
-        TileOwner.UpdateTileIndexLocation(tileIndex, newTileIndex, this, useEditorCode);
+        TileOwner.UpdateTileIndexLocation(tileIndex, newTileIndex, this, false, useEditorCode);
 
         if (useEditorCode) {
             Vector3 newLocalPosition = TileOwner.GetTileLocalPosition(newTileIndex);
@@ -183,18 +194,16 @@ public partial class Tile : MonoBehaviour {
 
         Vector3 moveTarget = TileOwner.GetTileLocalPosition(newTileIndex.x, newTileIndex.y);
         Vector3 movementStartPosition = transform.localPosition;
-        float endTime = TileOwner.GridData.TileVerticalMovement[TileOwner.GridData.TileVerticalMovement.length - 1].time;
-        float currentTime = 0;
+        float startTime = Time.time;
+        float endTime = Time.time + TileOwner.GridData.TileVerticalMovement[TileOwner.GridData.TileVerticalMovementKeyCount - 1].time;
 
         if (willTeleport) {
             StartCoroutine(AnimateTileWrap(newTileIndex, movementStartPosition));
         } else {
-            while (currentTime < endTime) {
+            while (Time.time < endTime) {
 
                 transform.localPosition = Vector3.LerpUnclamped(movementStartPosition, moveTarget,
-                    TileOwner.GridData.TileVerticalMovement.Evaluate(currentTime));
-
-                currentTime += Time.deltaTime;
+                    TileOwner.GridData.TileVerticalMovement.Evaluate(Time.time - startTime));
 
                 yield return null;
             }
@@ -217,11 +226,11 @@ public partial class Tile : MonoBehaviour {
                         ? lastMovementDirection * -1
                         : lastMovementDirection);
 
-                Tile.originalTileMover = new Vector2Int(-1, -1);
+                Tile.originalTileMover = Vector2Extensions.Minus1Int;
             } else {
                 OnTileEndedMoving(lastMovementDirection);
 
-                Tile.originalTileMover = new Vector2Int(-1, -1);
+                Tile.originalTileMover = Vector2Extensions.Minus1Int;
             }
             // Performance thing, only sync transform changes when we are done moving
             Physics.SyncTransforms();
@@ -234,35 +243,32 @@ public partial class Tile : MonoBehaviour {
         Vector3 diff = moveTarget - TileOwner.GetTileLocalPosition(tileIndex);
 
         // Keep in mind the proper grid spacing
-        float offset;
-        offset = (moveTargetIndex - tileIndex).x != 0 ? TileOwner.GridSpacing.x : TileOwner.GridSpacing.y;
+        float offset = (moveTargetIndex - tileIndex).x != 0 ? TileOwner.GridSpacing.x : TileOwner.GridSpacing.y;
 
         // Calculate movement direction
         Vector3 moveDirection = offset * 2.0f * new Vector3(-Mathf.Clamp(diff.x, -1, 1), 0, -Mathf.Clamp(diff.z, -1, 1));
 
         // Create temporary tile for tile fading
-        if (TileOwner.tempTile == null) {
-            TileOwner.tempTile = new GameObject("TileOwner.tempTile");
-            TileOwner.tempTile.AddComponent<MeshRenderer>();
-            TileOwner.tempTile.AddComponent<MeshFilter>();
-        } else if (TileOwner.tempTile.activeSelf == false) {
-            TileOwner.tempTile.SetActive(true);
+        if (TileOwner.TempTile == null) {
+            TileOwner.InitializeTempTile();
+        } else if (TileOwner.TempTile.activeSelf == false) {
+            TileOwner.TempTile.SetActive(true);
         }
 
-        MeshRenderer tempTileRenderer = TileOwner.tempTile.GetComponent<MeshRenderer>();
+        MeshRenderer tempTileRenderer = TileOwner.TempTile.GetComponent<MeshRenderer>();
         tempTileRenderer.enabled = true;
         tempTileRenderer.sharedMaterials = MeshRenderer.sharedMaterials;
 
-        TileOwner.tempTile.GetComponent<MeshFilter>().sharedMesh = MeshFilter.sharedMesh;
-        TileOwner.tempTile.transform.parent = transform.parent;
-        TileOwner.tempTile.transform.position = transform.position;
-        TileOwner.tempTile.transform.localScale = transform.localScale;
-        TileOwner.tempTile.transform.rotation = transform.rotation;
+        TileOwner.TempTile.GetComponent<MeshFilter>().sharedMesh = MeshFilter.sharedMesh;
+        TileOwner.TempTile.transform.parent = transform.parent;
+        TileOwner.TempTile.transform.position = transform.position;
+        TileOwner.TempTile.transform.localScale = transform.localScale;
+        TileOwner.TempTile.transform.rotation = transform.rotation;
 
         MaterialPropertyBlock tempPropertyBlock = new MaterialPropertyBlock();
         tempTileRenderer.GetPropertyBlock(tempPropertyBlock);
 
-        for (int i = 0; i < meshRenderer.sharedMaterials.Length; i++) {
+        for (int i = 0, length = meshRenderer.sharedMaterials.Length; i < length; i++) {
             PropertyBlock.SetFloat(TileOwner.TileData.fragmentationName, 1.0f);
         }
 
@@ -272,7 +278,7 @@ public partial class Tile : MonoBehaviour {
 
         // Setup loop timer
         float time = 0.0f;
-        float endTime = TileOwner.GridData.TileVerticalMovement[TileOwner.GridData.TileVerticalMovement.length - 1].time;
+        float endTime = TileOwner.GridData.TileVerticalMovement[TileOwner.GridData.TileVerticalMovementKeyCount - 1].time;
 
         // Loops for fading
         while (time < endTime) {
@@ -282,12 +288,14 @@ public partial class Tile : MonoBehaviour {
             if (tempTileRenderer != null) {
                 if (time < TileOwner.GridData.tileWrapFadeOutDuration) {
                     // Fading out effect
-                    for (int i = 0; i < tempTileRenderer.sharedMaterials.Length; i++) {
+                    for (int i = 0, length = tempTileRenderer.sharedMaterials.Length; i < length; i++) {
                         tempPropertyBlock.SetFloat(TileOwner.TileData.fragmentationName, time / TileOwner.GridData.tileWrapFadeOutDuration);
 
-                        foreach (string materialColorName in TileOwner.TileData.materialColorNames) {
+                        for (int j = 0, colorNamesCount = TileOwner.TileData.materialColorNames.Length; j < colorNamesCount; j++) {
+                            string materialColorName = TileOwner.TileData.materialColorNames[j];
                             tempPropertyBlock.SetColor(materialColorName, PropertyBlock.GetColor(materialColorName));
                         }
+
                         tempTileRenderer.SetPropertyBlock(tempPropertyBlock);
                     }
 
@@ -298,29 +306,31 @@ public partial class Tile : MonoBehaviour {
 
             if (time < TileOwner.GridData.tileWrapFadeInDuration) {
                 // Fading in effect
-                for (int i = 0; i < meshRenderer.sharedMaterials.Length; i++) {
-                    propertyBlock.SetFloat(TileOwner.TileData.fragmentationName, 1.0f - (time / TileOwner.GridData.tileWrapFadeInDuration));
+                for (int i = 0, length = meshRenderer.sharedMaterials.Length; i < length; i++) {
+                    PropertyBlock.SetFloat(TileOwner.TileData.fragmentationName, 1.0f - (time / TileOwner.GridData.tileWrapFadeInDuration));
 
-                    foreach (string materialColorName in TileOwner.TileData.materialColorNames) {
+                    for (int j = 0, colorNamesCount = TileOwner.TileData.materialColorNames.Length; j < colorNamesCount; j++) {
+                        string materialColorName = TileOwner.TileData.materialColorNames[j];
                         tempPropertyBlock.SetColor(materialColorName, PropertyBlock.GetColor(materialColorName));
                     }
-                    meshRenderer.SetPropertyBlock(propertyBlock);
+
+                    meshRenderer.SetPropertyBlock(PropertyBlock);
                 }
             } else {
                 //meshRenderer.sharedMaterials = originalSharedMaterials;
-                propertyBlock.SetFloat(TileOwner.TileData.fragmentationName, 0);
+                PropertyBlock.SetFloat(TileOwner.TileData.fragmentationName, 0);
 
-                foreach (string materialColorName in TileOwner.TileData.materialColorNames) {
-                    tempPropertyBlock.SetColor(materialColorName, PropertyBlock.GetColor(materialColorName));
+                for (int i = 0; i < TileOwner.TileData.MaterialColorNamesLength; i++) {
+                    tempPropertyBlock.SetColor(TileOwner.TileData.materialColorNames[i], PropertyBlock.GetColor(TileOwner.TileData.materialColorNames[i]));
                 }
 
-                meshRenderer.SetPropertyBlock(propertyBlock);
+                meshRenderer.SetPropertyBlock(PropertyBlock);
             }
 
             // Move tiles (and player if present)
             if (time < endTime) {
-                if (TileOwner.tempTile != null)
-                    TileOwner.tempTile.transform.localPosition = Vector3.Lerp(movementStartPosition, movementStartPosition + moveDirection, TileOwner.GridData.TileVerticalMovement.Evaluate(time));
+                if (TileOwner.TempTile != null)
+                    TileOwner.TempTile.transform.localPosition = Vector3.Lerp(movementStartPosition, movementStartPosition + moveDirection, TileOwner.GridData.TileVerticalMovement.Evaluate(time));
 
                 transform.localPosition = Vector3.Lerp(moveTarget - moveDirection, moveTarget, TileOwner.GridData.TileVerticalMovement.Evaluate(time));
             }
@@ -328,13 +338,13 @@ public partial class Tile : MonoBehaviour {
             yield return null;
         }
 
-        if (TileOwner.tempTile != null)
-            TileOwner.tempTile.transform.localPosition = movementStartPosition + moveDirection;
+        if (TileOwner.TempTile != null)
+            TileOwner.TempTile.transform.localPosition = movementStartPosition + moveDirection;
         transform.localPosition = moveTarget;
 
         // Destroy temporary objects
-        if (TileOwner.tempTile != null)
-            TileOwner.tempTile.SetActive(false);
+        if (TileOwner.TempTile != null)
+            TileOwner.TempTile.SetActive(false);
 
         // Mark as movement ended
         moving = false;
@@ -344,15 +354,13 @@ public partial class Tile : MonoBehaviour {
         Vector3 moveTarget = newPos;
         Vector3 movementStartPosition = transform.position;
         Quaternion movementStartRotation = transform.rotation;
-        float endTime = TileOwner.GridData.TileFreeMovement[TileOwner.GridData.TileFreeMovement.length - 1].time;
-        float currentTime = 0;
+        float startTime = Time.time;
+        float endTime = Time.time + TileOwner.GridData.TileFreeMovement[TileOwner.GridData.TileFreeMovementKeyCount - 1].time;
 
-        while (currentTime < endTime && transform != null) {
-            transform.position = Vector3.LerpUnclamped(movementStartPosition, moveTarget, TileOwner.GridData.TileFreeMovement.Evaluate(currentTime));
+        while (Time.time < endTime && transform != null) {
+            transform.position = Vector3.LerpUnclamped(movementStartPosition, moveTarget, TileOwner.GridData.TileFreeMovement.Evaluate(Time.time - startTime));
 
-            transform.rotation = Quaternion.LerpUnclamped(movementStartRotation, newRot, TileOwner.GridData.TileFreeMovement.Evaluate(currentTime));
-
-            currentTime += Time.deltaTime;
+            transform.rotation = Quaternion.LerpUnclamped(movementStartRotation, newRot, TileOwner.GridData.TileFreeMovement.Evaluate(Time.time - startTime));
 
             yield return null;
         }
@@ -381,7 +389,7 @@ public partial class Tile : MonoBehaviour {
             return;
         }
 
-        if (Tile.originalTileMover == new Vector2Int(-1, -1)) {
+        if (Tile.originalTileMover == Vector2Extensions.Minus1Int) {
             if (IsValidMove(tileIndex, movementDirection) == false) {
                 return;
             }
@@ -416,6 +424,9 @@ public partial class Tile : MonoBehaviour {
             if (Tile.originalTileMover == tileIndex) {
                 // Stop the movement, to prevent looping and reset so we can continue correctly for the next iteration
 
+                if (!Application.isPlaying)
+                    Tile.originalTileMover = Vector2Extensions.Minus1Int;
+
                 return;
             }
         }
@@ -424,6 +435,8 @@ public partial class Tile : MonoBehaviour {
 
         if (TileOwner.GetTileAtIndex(newIndex) != null) {
             TileOwner.GetTileAtIndex(newIndex).MoveTile(direction);
+        } else {
+            Tile.originalTileMover = Vector2Extensions.Minus1Int;
         }
 
         if (IsMovableTile()) {

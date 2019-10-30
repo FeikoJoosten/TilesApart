@@ -12,9 +12,10 @@ public class BackgroundMaterialUpdater : MonoBehaviour {
     private MeshRenderer[] meshesToUpdate = null;
     [SerializeField]
     private string variableToUpdate = "Animation Time";
-
+    
     private static float currentTime;
     private static Coroutine updateCoroutine;
+    private static WaitForEndOfFrame endOfFrame = new WaitForEndOfFrame();
     private static event System.Action OnUpdateCalled = delegate { };
     private Dictionary<string, List<Image>> imageRenderers = new Dictionary<string, List<Image>>();
     private Dictionary<string, List<RawImage>> rawImageRenderers = new Dictionary<string, List<RawImage>>();
@@ -93,7 +94,7 @@ public class BackgroundMaterialUpdater : MonoBehaviour {
 
     private IEnumerator WaitForEndOfFrame() {
         while (Application.isPlaying) {
-            yield return new WaitForEndOfFrame();
+            yield return endOfFrame;
 
             currentTime += Time.deltaTime;
             OnUpdateCalled();
@@ -102,14 +103,11 @@ public class BackgroundMaterialUpdater : MonoBehaviour {
 
     private void UpdateMaterials() {
         foreach (KeyValuePair<string, List<Image>> imageToUpdate in imageRenderers) {
-            if (imageToUpdate.Value == null) continue;
-            if (imageToUpdate.Value.Count == 0) continue;
-
             Material imageMaterial = imageToUpdate.Value[0].material;
             imageMaterial.SetFloat(variableToUpdate, currentTime);
 
-            foreach (Image image in imageToUpdate.Value) {
-                image.material = imageMaterial;
+            for (int i = 0, length = imageToUpdate.Value.Count; i < length; i++) {
+                imageToUpdate.Value[i].material = imageMaterial;
             }
         }
 
@@ -120,8 +118,8 @@ public class BackgroundMaterialUpdater : MonoBehaviour {
             Material imageMaterial = imageToUpdate.Value[0].material;
             imageMaterial.SetFloat(variableToUpdate, currentTime);
 
-            foreach (RawImage image in imageToUpdate.Value) {
-                image.material = imageMaterial;
+            for (int i = 0, length = imageToUpdate.Value.Count; i < length; i++) {
+                imageToUpdate.Value[i].material = imageMaterial;
             }
         }
 
@@ -130,12 +128,12 @@ public class BackgroundMaterialUpdater : MonoBehaviour {
             if (renderersToUpdate.Value.Count == 0) continue;
 
             Material[] sharedMaterials = renderersToUpdate.Value[0].materials;
-            foreach (Material sharedMaterial in sharedMaterials) {
-                sharedMaterial.SetFloat(variableToUpdate, currentTime);
+            for (int i = 0, length = sharedMaterials.Length; i < length; i++) {
+                sharedMaterials[i].SetFloat(variableToUpdate, currentTime);
             }
 
-            foreach (MeshRenderer meshRenderer in renderersToUpdate.Value) {
-                meshRenderer.materials = sharedMaterials;
+            for (int i = 0, length = renderersToUpdate.Value.Count; i < length; i++) {
+                renderersToUpdate.Value[i].materials = sharedMaterials;
             }
         }
     }

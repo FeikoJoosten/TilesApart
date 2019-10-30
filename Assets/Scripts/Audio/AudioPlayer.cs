@@ -123,8 +123,6 @@ public abstract class AudioPlayer : MonoBehaviour {
         // Get a random audio file from the collection and play it once.
         int fileToPlay = UnityEngine.Random.Range(0, filesToPlay.Count - 1);
 
-        if (fileToPlay < 0 || fileToPlay >= filesToPlay.Count) return;
-
         if (filesToPlay.ElementAt(fileToPlay) == null) return;
 
         PlaySound(filesToPlay.ElementAt(fileToPlay), playOnce);

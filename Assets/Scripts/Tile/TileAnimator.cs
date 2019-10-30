@@ -5,10 +5,11 @@ public class TileAnimator : MonoBehaviour {
 
     private Tile tile;
     public Tile Tile {
-        get { return tile ?? (Tile = GetComponent<Tile>()); }
-        set { tile = value; }
+        get => tile ?? (tile = GetComponent<Tile>());
+        set => tile = value;
     }
-    public bool isUp => Mathf.Approximately(transform.localPosition.y, 0);
+    public bool IsUp => Mathf.Approximately(transform.localPosition.y, 0);
+    public bool IsDown => Mathf.Approximately(transform.position.y, Tile.TileOwner.GridData.TileDownMovementOffset);
 
     public void Start() {
         Player.OnPlayerEndedMoving += OnPlayerEndedMoving;
@@ -38,9 +39,12 @@ public class TileAnimator : MonoBehaviour {
     }
 
     public void MoveUp(bool ignoreUpCheck = false, bool fadeIn = false) {
-        if (isUp == true && ignoreUpCheck == false) return;
+        if (IsUp == true && ignoreUpCheck == false) return;
 
-        StopAllCoroutines();
+        if (ignoreUpCheck) {
+            transform.position = new Vector3(transform.position.x, Tile.TileOwner.GridData.TileDownMovementOffset, transform.position.z);
+        }
+
         StartCoroutine(MoveHorizontally(new Vector3(transform.position.x, 0, transform.position.z)));
 
         if (fadeIn) {
@@ -49,9 +53,12 @@ public class TileAnimator : MonoBehaviour {
     }
 
     public void MoveDown(bool ignoreDownCheck = false, bool fadeOut = false) {
-        if (isUp == false && ignoreDownCheck == false) return;
+        if (IsUp == false && ignoreDownCheck == false) return;
 
-        StopAllCoroutines();
+        if (ignoreDownCheck) {
+            transform.position = new Vector3(transform.position.x, 0, transform.position.z);
+        }
+
         StartCoroutine(MoveHorizontally(new Vector3(transform.position.x, Tile.TileOwner.GridData.TileDownMovementOffset, transform.position.z)));
 
         if (fadeOut) {
@@ -61,14 +68,11 @@ public class TileAnimator : MonoBehaviour {
 
     private IEnumerator MoveHorizontally(Vector3 moveTarget) {
         Vector3 movementStartPosition = Tile.transform.position;
-        float endTime = Tile.TileOwner.GridData.TileHorizontalMovement[Tile.TileOwner.GridData.TileHorizontalMovement.length - 1].time;
+        float startTime = Time.time;
+        float endTime = startTime + Tile.TileOwner.GridData.TileHorizontalMovement[Tile.TileOwner.GridData.TileHorizontalMovementKeyCount - 1].time;
 
-        float currentAnimationTime = 0;
-
-        while (currentAnimationTime < endTime) {
-            Tile.transform.position = Vector3.LerpUnclamped(movementStartPosition, moveTarget, Tile.TileOwner.GridData.TileHorizontalMovement.Evaluate(currentAnimationTime));
-
-            currentAnimationTime += Time.deltaTime;
+        while (Time.time < endTime) {
+            Tile.transform.position = Vector3.LerpUnclamped(movementStartPosition, moveTarget, Tile.TileOwner.GridData.TileHorizontalMovement.Evaluate((Time.time - startTime) / (endTime - startTime)));
 
             yield return null;
         }
@@ -77,18 +81,17 @@ public class TileAnimator : MonoBehaviour {
     }
 
     private IEnumerator FadeOut() {
-        float endTime = Tile.TileOwner.GridData.tileWrapFadeOutDuration;
-        float currentFadeStep = 0;
+        float startTime = Time.time;
+        float endTime = Time.time + Tile.TileOwner.GridData.tileWrapFadeOutDuration;
 
         if (Tile.MeshRenderer == null) yield break;
         if (Tile.MeshRenderer.sharedMaterial == null) yield break;
 
-        while (currentFadeStep < endTime) {
+        while (Time.time < endTime) {
             // Fading out effect
             Tile.MeshRenderer.GetPropertyBlock(Tile.PropertyBlock);
-            Tile.PropertyBlock.SetFloat(Tile.TileOwner.TileData.fragmentationName, currentFadeStep / Tile.TileOwner.GridData.tileWrapFadeOutDuration);
+            Tile.PropertyBlock.SetFloat(Tile.TileOwner.TileData.fragmentationName, (Time.time - startTime) / (endTime - startTime));
 
-            currentFadeStep += Time.deltaTime;
             Tile.MeshRenderer.SetPropertyBlock(Tile.PropertyBlock);
             yield return null;
         }
@@ -99,18 +102,17 @@ public class TileAnimator : MonoBehaviour {
     }
 
     private IEnumerator FadeIn() {
-        float endTime = Tile.TileOwner.GridData.tileWrapFadeOutDuration;
-        float currentFadeStep = 0;
+        float startTime = Time.time;
+        float endTime = Time.time + Tile.TileOwner.GridData.tileWrapFadeOutDuration;
 
         if (Tile.MeshRenderer == null) yield break;
         if (Tile.MeshRenderer.sharedMaterial == null) yield break;
 
-        while (currentFadeStep < endTime) {
+        while (Time.time < endTime) {
             // Fading out effect
             Tile.MeshRenderer.GetPropertyBlock(Tile.PropertyBlock);
-            Tile.PropertyBlock.SetFloat(Tile.TileOwner.TileData.fragmentationName, 1.0f - currentFadeStep / Tile.TileOwner.GridData.tileWrapFadeOutDuration);
+            Tile.PropertyBlock.SetFloat(Tile.TileOwner.TileData.fragmentationName, 1.0f - (Time.time - startTime) / (endTime - startTime));
 
-            currentFadeStep += Time.deltaTime;
             Tile.MeshRenderer.SetPropertyBlock(Tile.PropertyBlock);
             yield return null;
         }
@@ -121,7 +123,7 @@ public class TileAnimator : MonoBehaviour {
     }
 
     public void MoveDownInstant(bool fadeOut = false) {
-        if (isUp == false) return;
+        if (IsUp == false) return;
 
         if (transform == null)
             return;

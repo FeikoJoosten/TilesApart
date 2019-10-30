@@ -38,7 +38,7 @@ public partial class GridManager : MonoBehaviour {
     public Vector2Int GridSize => gridSize;
     public GridData GridData => gridData;
     public TileData TileData => defaultTileData;
-    public GameObject tempTile;
+    public GameObject TempTile { get; private set; }
     public bool IsLevelRisingUp { get; private set; }
     public bool IsGridMoving {
         get {
@@ -47,8 +47,8 @@ public partial class GridManager : MonoBehaviour {
                     return false;
                 }
 
-                for (int x = 0; x < grid.rows.Count; x++) {
-                    for (int y = 0; y < grid.rows[x].row.Count; y++) {
+                for (int x = 0; x < GridSize.x; x++) {
+                    for (int y = 0; y < GridSize.y; y++) {
                         if (grid.rows[x].row[y] == null)
                             continue;
 
@@ -73,45 +73,50 @@ public partial class GridManager : MonoBehaviour {
         }
     }
 
-    private void OnEnable() {
+    private List<Tile> tilesToReset = new List<Tile>();
+
+    private void Start() {
         StopAllCoroutines();
-        StartCoroutine(RiseLevel());
+        SinkLevel(true, true, true, false);
+        StartCoroutine(RiseLevel(false, true, true, false));
     }
 
-    public IEnumerator RiseLevel(bool instant = false) {
+    public IEnumerator RiseLevel(bool instant = false, bool ignoreUpCheck = false, bool ignoreStartTile = true, bool ignoreEndTile = true) {
         IsLevelRisingUp = true;
 
-        for (int x = 0; x < grid.rows.Count; x++) {
-            for (int y = 0; y < grid.rows[x].row.Count; y++) {
+        for (int x = 0; x < GridSize.x; x++) {
+            for (int y = 0; y < GridSize.y; y++) {
                 if (grid.rows[x].row[y] == null)
                     continue;
 
-                if (grid.rows[x].row[y].tileType == TileType.Start || grid.rows[x].row[y].TileAnimator == false)
+                if (grid.rows[x].row[y].TileAnimator == false ||
+                    (grid.rows[x].row[y].tileType == TileType.Start && ignoreStartTile) ||
+                    (grid.rows[x].row[y].tileType == TileType.End && ignoreEndTile))
                     continue;
 
                 if (instant) {
-                    //grid.rows[x].row[y].tileAnimator.MoveDownInstant(); Nothing yet, just copied SinkLevel
+                    //grid.rows[x].row[y].tileAnimator.MoveUpInstant(); Nothing yet, just copied SinkLevel
                     continue;
                 }
 
-                grid.rows[x].row[y].TileAnimator.MoveUp(false, true);
+                grid.rows[x].row[y].TileAnimator.MoveUp(ignoreUpCheck, true);
             }
         }
 
         // Wait for the entire level to raise back up
         while (true) {
             bool shouldWait = false;
-            for (int x = 0; x < grid.rows.Count; x++) {
+            for (int x = 0; x < GridSize.x; x++) {
                 if (shouldWait == true) {
                     break;
                 }
 
-                for (int y = 0; y < grid.rows[x].row.Count; y++) {
+                for (int y = 0; y < GridSize.y; y++) {
                     if (grid.rows[x].row[y] == null) {
                         continue;
                     }
 
-                    if (grid.rows[x].row[y].TileAnimator.isUp == false) {
+                    if (grid.rows[x].row[y].TileAnimator.IsUp == false) {
                         shouldWait = true;
                         break;
                     }
@@ -129,6 +134,20 @@ public partial class GridManager : MonoBehaviour {
         Physics.SyncTransforms();
     }
 
+    public bool IsLevelDown(bool ignoreStartTile = true, bool ignoreEndTile = true) {
+        for (int x = 0; x < GridSize.x; x++) {
+            for (int y = 0; y < GridSize.y; y++) {
+                if (grid.rows[x].row[y] == null) continue;
+                if (grid.rows[x].row[y].tileType == TileType.Start && ignoreStartTile) continue;
+                if (grid.rows[x].row[y].tileType == TileType.End && ignoreEndTile) continue;
+
+                if (grid.rows[x].row[y].TileAnimator.IsDown == false) return false;
+            }
+        }
+
+        return true;
+    }
+
     public void AlignPlayerRotation() {
         if (startTile)
             PlayerObject.transform.rotation = startTile.transform.rotation;
@@ -139,11 +158,11 @@ public partial class GridManager : MonoBehaviour {
     }
 
     public Tile GetTileAtIndex(Vector2Int tileIndex) {
-        if (tileIndex.x >= grid.rows.Count || tileIndex.x < 0 || tileIndex.y < 0) {
+        if (tileIndex.x >= GridSize.x || tileIndex.x < 0 || tileIndex.y < 0) {
             return null;
         }
 
-        if (tileIndex.y >= grid.rows[tileIndex.x].row.Count) {
+        if (tileIndex.y >= GridSize.y) {
             return null;
         }
 
@@ -178,19 +197,25 @@ public partial class GridManager : MonoBehaviour {
         return tileHolder.transform.TransformPoint(localPosition);
     }
 
-    public void UpdateTileIndexLocation(Vector2Int oldIndex, Vector2Int newIndex, Tile tileToUpdate, bool ignoreOldIndex = false) {
-        if (newIndex.x >= grid.rows.Count || newIndex.x < 0 || newIndex.y < 0) {
+    public void InitializeTempTile() {
+        TempTile = new GameObject("TileOwner.TempTile");
+        TempTile.AddComponent<MeshRenderer>();
+        TempTile.AddComponent<MeshFilter>();
+    }
+
+    public void UpdateTileIndexLocation(Vector2Int oldIndex, Vector2Int newIndex, Tile tileToUpdate, bool ignoreOldIndex = false, bool isResetting = false) {
+        if (newIndex.x >= GridSize.x || newIndex.x < 0 || newIndex.y < 0) {
             return;
         }
 
-        if (newIndex.y >= grid.rows[newIndex.x].row.Count) {
+        if (newIndex.y >= GridSize.y) {
             return;
         }
 
         if (grid.rows[newIndex.x].row[newIndex.y] == null) {
             grid.rows[newIndex.x].row[newIndex.y] = tileToUpdate;
 
-            if (ignoreOldIndex == false)
+            if (ignoreOldIndex == false && isResetting == false)
                 grid.rows[oldIndex.x].row[oldIndex.y] = null;
         } else {
             grid.rows[newIndex.x].row[newIndex.y] = tileToUpdate;
@@ -202,11 +227,11 @@ public partial class GridManager : MonoBehaviour {
     }
 
     public void EmptyTileIndexLocation(Vector2Int tileIndex) {
-        if (tileIndex.x >= grid.rows.Count || tileIndex.x < 0 || tileIndex.y < 0) {
+        if (tileIndex.x >= GridSize.x || tileIndex.x < 0 || tileIndex.y < 0) {
             return;
         }
 
-        if (tileIndex.y >= grid.rows[tileIndex.x].row.Count) {
+        if (tileIndex.y >= GridSize.y) {
             return;
         }
 
@@ -214,8 +239,8 @@ public partial class GridManager : MonoBehaviour {
     }
 
     public void SinkLevel(bool instant = false, bool fadeLevel = false, bool ignoreStartTile = true, bool ignoreEndTile = true) {
-        for (int x = 0; x < grid.rows.Count; x++) {
-            for (int y = 0; y < grid.rows[x].row.Count; y++) {
+        for (int x = 0; x < GridSize.x; x++) {
+            for (int y = 0; y < GridSize.y; y++) {
                 if (grid.rows[x].row[y] == null)
                     continue;
 
@@ -241,22 +266,19 @@ public partial class GridManager : MonoBehaviour {
 
     public void ResetLevel() {
         // We need to save the tiles to reset in a separate list, otherwise they can overwrite each other
-        List<Tile> tilesToReset = new List<Tile>();
+        tilesToReset.Clear();
 
-        for (int x = 0; x < grid.rows.Count; x++) {
-            for (int y = 0; y < grid.rows[x].row.Count; y++) {
-                if (grid.rows[x].row[y] == null) continue;
-
-                tilesToReset.Add(grid.rows[x].row[y]);
-            }
+        for (int x = 0; x < GridSize.x; x++) {
+            tilesToReset.AddRange(grid.rows[x].row);
         }
 
-        for (int x = 0; x < grid.rows.Count; x++) {
-            for (int y = 0; y < grid.rows[x].row.Count; y++) {
+        for (int x = 0; x < GridSize.x; x++) {
+            for (int y = 0; y < GridSize.y; y++) {
                 grid.rows[x].row[y] = null;
             }
         }
 
-        tilesToReset.ForEach(tile => tile.ResetTile());
+        for (int i = 0, length = tilesToReset.Count; i < length; i++)
+            tilesToReset[i].ResetTile();
     }
 }

@@ -9,9 +9,13 @@ public class FadeOnLevelTransition : MonoBehaviour {
     [SerializeField]
     private AnimationCurve fadeOutCurve = new AnimationCurve(new Keyframe(0, 1), new Keyframe(0.5f, 0.65f));
 
+    private int fadeInCurveKeyCount;
+    private int fadeOutCurveKeyCount;
     private Button buttonToUpdate;
 
     private void Awake() {
+        fadeInCurveKeyCount = fadeInCurve.length;
+        fadeOutCurveKeyCount = fadeOutCurve.length;
         buttonToUpdate = GetComponent<Button>();
 
         Player.OnPlayerWon += OnPlayerOnOnPlayerWon;
@@ -27,35 +31,34 @@ public class FadeOnLevelTransition : MonoBehaviour {
 
     private void OnPlayerOnOnPlayerWon(string wonLevel) {
         StopAllCoroutines();
-        StartCoroutine(FadeButton(fadeOutCurve, true));
+        StartCoroutine(FadeButton(fadeOutCurve, true, fadeOutCurveKeyCount));
     }
 
     private void OnLevelLoaded() {
         StopAllCoroutines();
-        StartCoroutine(FadeButton(fadeInCurve, false));
+        StartCoroutine(FadeButton(fadeInCurve, false, fadeInCurveKeyCount));
     }
 
-    private IEnumerator FadeButton(AnimationCurve fadeCurve, bool shouldDisable) {
+    private IEnumerator FadeButton(AnimationCurve fadeCurve, bool shouldDisable, int curveLength) {
         ColorBlock savedColorBlock = buttonToUpdate.colors;
         Color savedColor = savedColorBlock.normalColor;
         savedColorBlock.disabledColor = savedColor;
         buttonToUpdate.colors = savedColorBlock;
         buttonToUpdate.interactable = !shouldDisable;
 
-        float currentTime = 0;
-        float endTime = fadeCurve.keys[fadeCurve.keys.Length - 1].time;
+        float startTime = Time.time;
+        float endTime = Time.time + fadeCurve[curveLength - 1].time;
 
-        while (currentTime < endTime) {
-            savedColor.a = fadeCurve.Evaluate(currentTime);
+        while (Time.time < endTime) {
+            savedColor.a = fadeCurve.Evaluate(Time.time - startTime);
 
             savedColorBlock.disabledColor = savedColor;
             buttonToUpdate.colors = savedColorBlock;
 
-            currentTime += Time.deltaTime;
             yield return null;
         }
 
-        savedColor.a = fadeCurve[fadeCurve.length - 1].value;
+        savedColor.a = fadeCurve[curveLength - 1].value;
         savedColorBlock.disabledColor = savedColor;
         buttonToUpdate.colors = savedColorBlock;
     }

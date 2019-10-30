@@ -24,14 +24,14 @@ public class FadeCamera : MonoBehaviour {
         if (fadeData == null) return;
 
         StopAllCoroutines();
-        StartCoroutine(FadeImage(fadeImage, fadeData.FadeInCurve, shouldDisableObject, true));
+        StartCoroutine(FadeImage(fadeImage, fadeData.FadeInCurve, shouldDisableObject, true, fadeData.FadeInCurveKeyCount));
     }
 
     public void FadeOut(bool shouldDisableObject = false) {
         if (fadeData == null) return;
 
         StopAllCoroutines();
-        StartCoroutine(FadeImage(fadeImage, fadeData.FadeOutCurve, shouldDisableObject, false));
+        StartCoroutine(FadeImage(fadeImage, fadeData.FadeOutCurve, shouldDisableObject, false, fadeData.FadeOutCurveKeyCount));
     }
 
     public void ChangeFadeImageStatus(bool shouldBeEnabled) {
@@ -40,10 +40,9 @@ public class FadeCamera : MonoBehaviour {
         fadeImage.gameObject.SetActive(shouldBeEnabled);
     }
 
-    private IEnumerator FadeImage(Image imageToFade, AnimationCurve fadeCurve, bool disableObject, bool isFadingIn) {
+    private IEnumerator FadeImage(Image imageToFade, AnimationCurve fadeCurve, bool disableObject, bool isFadingIn, int fadeCurveLength) {
         if (imageToFade == null) yield break;
 
-        float endTime = fadeCurve[fadeCurve.length - 1].time;
         currentFadeLevel = 0;
         OnFadeStarted(isFadingIn);
 
@@ -53,23 +52,23 @@ public class FadeCamera : MonoBehaviour {
         imageToFade.color = startColor;
         imageToFade.gameObject.SetActive(true);
 
-        float currentTime = 0;
+        float startTime = Time.time;
+        float endTime = Time.time + fadeCurve[fadeCurveLength - 1].time;
         Color currentColor = startColor;
         currentFadeLevel = 0;
 
-        while (currentTime < endTime) {
-            currentColor.a = fadeCurve.Evaluate(currentTime);
+        while (Time.time < endTime) {
+            currentColor.a = fadeCurve.Evaluate(Time.time - startTime);
 
             imageToFade.color = currentColor;
 
-            currentTime += Time.deltaTime;
-            currentFadeLevel = currentTime / endTime;
+            currentFadeLevel = (Time.time - startTime) / (endTime - startTime);
 
             yield return null;
         }
 
         currentFadeLevel = endTime;
-        currentColor.a = fadeCurve[fadeCurve.length - 1].value;
+        currentColor.a = fadeCurve[fadeCurveLength - 1].value;
         imageToFade.color = currentColor;
 
         if (disableObject)

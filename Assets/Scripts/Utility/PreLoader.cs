@@ -13,6 +13,7 @@ public class PreLoader : MonoBehaviour {
 
     public bool isTransitioning = false;
     private Scene nextScene;
+    private WaitForEndOfFrame endOfFrame = new WaitForEndOfFrame();
 
     private Vector3 newStartPosition = new Vector3(0, 0, 0);
     Quaternion newStartRotation = new Quaternion(0, 0, 0, 0);
@@ -21,7 +22,15 @@ public class PreLoader : MonoBehaviour {
     private Vector3 newCameraPosition = new Vector3(0, 0, 0);
     public float waitAfterMoveCoroutine = 0.3f;
 
-    private AnimationCurve cameraAnimationCurve = new AnimationCurve(new Keyframe(0, 0), new Keyframe(1, 1));
+    private readonly AnimationCurve cameraAnimationCurve = new AnimationCurve(new Keyframe(0, 0), new Keyframe(1, 1));
+    private readonly int cameraAnimationCurveKeyCount;
+    private int currentSceneRootObjectCount;
+    private int nextSceneRootObjectCount;
+    private GameObject[] nextSceneRootGameObjects;
+
+    public PreLoader() {
+        cameraAnimationCurveKeyCount = cameraAnimationCurve.length;
+    }
 
     public IEnumerator PreLoadNextLevel() {
         // We're already loading no need to load again
@@ -55,6 +64,8 @@ public class PreLoader : MonoBehaviour {
 
         async = null;
         nextScene = SceneManager.GetSceneByName(nextSceneName);
+        nextSceneRootGameObjects = nextScene.GetRootGameObjects();
+        nextSceneRootObjectCount = nextSceneRootGameObjects.Length;
 
         SaveNextLevelInformationAndDisableObject();
     }
@@ -63,7 +74,8 @@ public class PreLoader : MonoBehaviour {
         if (string.IsNullOrEmpty(nextScene.name)) return;
 
         // Disabling GameObjects of next scene, to fit this in the same frame (Async does not allow this)
-        foreach (GameObject rootObject in nextScene.GetRootGameObjects()) {
+        for (int index = 0; index < nextSceneRootObjectCount; index++) {
+            GameObject rootObject = nextSceneRootGameObjects[index];
             GridManager nextManager = rootObject.GetComponent<GridManager>();
 
             if (nextManager != null) {
@@ -115,8 +127,10 @@ public class PreLoader : MonoBehaviour {
         GridManager gridManager = null;
 
         Scene currentScene = SceneManager.GetActiveScene();
-        foreach (GameObject rootObject in currentScene.GetRootGameObjects()) {
-            GridManager foundManager = rootObject.GetComponent<GridManager>();
+        GameObject[] rootObjects = currentScene.GetRootGameObjects();
+
+        for (int i = 0, length = rootObjects.Length; i < length; i++) {
+            GridManager foundManager = rootObjects[i].GetComponent<GridManager>();
 
             if (foundManager == null) continue;
 
@@ -129,11 +143,9 @@ public class PreLoader : MonoBehaviour {
             yield break;
         }
 
-        float timeToWait = gridManager.GridData.TileHorizontalMovement[gridManager.GridData.TileHorizontalMovement.length - 1].time;
+        float endTime = Time.time + gridManager.GridData.TileHorizontalMovement[gridManager.GridData.TileHorizontalMovementKeyCount - 1].time;
 
-        while (timeToWait > 0) {
-            timeToWait -= Time.deltaTime;
-
+        while (Time.time < endTime) {
             yield return null;
         }
 
@@ -149,10 +161,11 @@ public class PreLoader : MonoBehaviour {
 
         GridManager nextGridManager = null;
 
-        foreach (GameObject rootObject in nextScene.GetRootGameObjects()) {
-            if (!rootObject.GetComponent<GridManager>()) continue;
+        for (int i = 0; i < nextSceneRootObjectCount; i++) {
+            GridManager manager = nextSceneRootGameObjects[i].GetComponent<GridManager>();
+            if (manager == null) continue;
 
-            nextGridManager = rootObject.GetComponent<GridManager>();
+            nextGridManager = manager;
             break;
         }
 
@@ -164,16 +177,14 @@ public class PreLoader : MonoBehaviour {
 
         SceneManager.SetActiveScene(nextScene);
 
-        timeToWait = waitAfterMoveCoroutine;
+        endTime = Time.time + waitAfterMoveCoroutine;
 
-        while (timeToWait > 0) {
-            timeToWait -= Time.deltaTime;
-
+        while (Time.time < endTime) {
             yield return null;
         }
 
-        foreach (GameObject rootObject in nextScene.GetRootGameObjects()) {
-            rootObject.SetActive(true);
+        for(int i = 0; i < nextSceneRootObjectCount; i++) {
+            nextSceneRootGameObjects[i].SetActive(true);
         }
 
         OnNextCameraActived();
@@ -186,7 +197,7 @@ public class PreLoader : MonoBehaviour {
         if (chapterTransition)
             LevelManager.Instance.FadeCamera.FadeIn();
 
-        yield return StartCoroutine(EnableRootObjects(nextScene.GetRootGameObjects()));
+        yield return StartCoroutine(EnableRootObjects(nextSceneRootGameObjects));
 
         LevelManager.Instance.SetCurrentGameScene(nextScene);
 
@@ -196,28 +207,26 @@ public class PreLoader : MonoBehaviour {
     }
 
     private IEnumerator EnableRootObjects(IEnumerable<GameObject> rootObjects) {
-        yield return new WaitForEndOfFrame();
+        yield return endOfFrame;
 
         foreach (GameObject rootObject in rootObjects) {
             rootObject.SetActive(true);
         }
 
-        yield return new WaitForEndOfFrame();
+        yield return endOfFrame;
     }
 
     private IEnumerator MoveCamera(Camera cameraToMove, float newSize, Vector3 newPosition) {
-        float endTime = cameraAnimationCurve[cameraAnimationCurve.length - 1].time;
-        float currentTime = 0;
+        float startTime = Time.time;
+        float endTime = Time.time + cameraAnimationCurve[cameraAnimationCurveKeyCount - 1].time;
 
         float startSize = cameraToMove.orthographicSize;
         Vector3 startPosition = cameraToMove.transform.position;
 
-        while (currentTime < endTime) {
-            cameraToMove.orthographicSize = Mathf.LerpUnclamped(startSize, newSize, cameraAnimationCurve.Evaluate(currentTime));
+        while (Time.time < endTime) {
+            cameraToMove.orthographicSize = Mathf.LerpUnclamped(startSize, newSize, cameraAnimationCurve.Evaluate(Time.time - startTime));
 
-            cameraToMove.transform.position = Vector3.LerpUnclamped(startPosition, newPosition, cameraAnimationCurve.Evaluate(currentTime));
-
-            currentTime += Time.deltaTime;
+            cameraToMove.transform.position = Vector3.LerpUnclamped(startPosition, newPosition, cameraAnimationCurve.Evaluate(Time.time - startTime));
 
             yield return null;
         }
@@ -227,18 +236,16 @@ public class PreLoader : MonoBehaviour {
     }
 
     private IEnumerator RotatePlayer(Quaternion newRotation, GridManager gridManager) {
-        float endTime = gridManager.GridData.TileFreeMovement[gridManager.GridData.TileFreeMovement.length - 1].time;
-        float currentTime = 0;
+        float startTime = Time.time;
+        float endTime = Time.time + gridManager.GridData.TileFreeMovement[gridManager.GridData.TileFreeMovementKeyCount - 1].time;
 
         Quaternion startRotation = gridManager.PlayerObject.transform.rotation;
 
-        while (currentTime < endTime) {
+        while (Time.time < endTime) {
             if (gridManager.PlayerObject == null)
                 yield break;
 
-            gridManager.PlayerObject.transform.rotation = Quaternion.LerpUnclamped(startRotation, newRotation, gridManager.GridData.TileFreeMovement.Evaluate(currentTime));
-
-            currentTime += Time.deltaTime;
+            gridManager.PlayerObject.transform.rotation = Quaternion.LerpUnclamped(startRotation, newRotation, gridManager.GridData.TileFreeMovement.Evaluate(Time.time - startTime));
 
             yield return null;
         }
@@ -251,12 +258,12 @@ public class PreLoader : MonoBehaviour {
         if (async != null || isTransitioning) return;
         string nextLevelName = LevelManager.Instance.GetNextLevelName(false, false);
 
-        if (nextLevelName.Length == 0) return;
+        if (string.IsNullOrEmpty(nextLevelName)) return;
 
         if (nextLevelName == SceneManager.GetActiveScene().name) {
             nextLevelName = LevelManager.Instance.GetNextLevelName();
 
-            if (nextLevelName.Length == 0) return;
+            if (string.IsNullOrEmpty(nextLevelName)) return;
             nextLevelName = LevelManager.Instance.GetNextLevelName(false, false);
         }
 

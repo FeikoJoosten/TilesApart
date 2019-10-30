@@ -19,6 +19,9 @@ public class PlayerAnimator : MonoBehaviour {
     private IEnumerator currentRotationAnimation;
     private float defaultPlaybackSpeed;
     private bool inputEnabled = true;
+    private Vector3 vecY90 = new Vector3(0, 90, 0);
+    private Vector3 vecY180 = new Vector3(0, 180, 0);
+    private Vector3 vecY270 = new Vector3(0, 270, 0);
 
     public bool IsRotating { get; private set; }
     public GameObject PlayerRenderer => playerRenderer;
@@ -68,7 +71,8 @@ public class PlayerAnimator : MonoBehaviour {
 
         if (Input.GetMouseButtonDown(0)) {
             startScreenPosition = Input.mousePosition;
-            currentOrientation = new Vector2Int(Mathf.RoundToInt(-transform.forward.x), Mathf.RoundToInt(-transform.forward.z));
+            currentOrientation.x = Mathf.RoundToInt(-transform.forward.x);
+            currentOrientation.y = Mathf.RoundToInt(-transform.forward.z);
         }
 
         if (Input.GetMouseButton(0) == false) {
@@ -194,15 +198,15 @@ public class PlayerAnimator : MonoBehaviour {
         //}
         // East
         if (newOrientation.x == -1) {
-            aimRotation = new Vector3(0, 90, 0);
+            aimRotation = vecY90;
         }
         // South
         else if (newOrientation.y == 1) {
-            aimRotation = new Vector3(0, 180, 0);
+            aimRotation = vecY180;
         }
         // West
         else if (newOrientation.x == 1) {
-            aimRotation = new Vector3(0, 270, 0);
+            aimRotation = vecY270;
         }
 
         currentRotationAnimation = RotatePlayerModel(aimRotation);
@@ -216,15 +220,16 @@ public class PlayerAnimator : MonoBehaviour {
         Quaternion startRotation = transform.rotation;
         Quaternion targetRotation = Quaternion.Euler(targetRotationEuler);
 
+        float startTime = Time.time;
         float endTime = player.PlayerData.ShortRotationTime;
 
         if (Quaternion.Angle(startRotation, targetRotation) > 90) {
             endTime = player.PlayerData.LongRotationTime;
         }
 
-        float currentStep = 0;
+        endTime += Time.time;
 
-        while (currentStep < endTime) {
+        while (Time.time < endTime) {
             if (player.GridManager.IsGridMoving) {
                 transform.rotation = targetRotation;
                 currentRotationAnimation = null;
@@ -232,9 +237,8 @@ public class PlayerAnimator : MonoBehaviour {
                 yield break;
             }
 
-            transform.rotation = Quaternion.Lerp(startRotation, targetRotation, currentStep / endTime);
+            transform.rotation = Quaternion.Lerp(startRotation, targetRotation, (Time.time - startTime) / (endTime - startTime));
 
-            currentStep += Time.deltaTime;
             yield return null;
         }
 
@@ -260,15 +264,15 @@ public class PlayerAnimator : MonoBehaviour {
         //}
         // East
         if (movementDirection.x == 1) {
-            aimRotation = new Vector3(0, 90, 0);
+            aimRotation = vecY90;
         }
         // South
         else if (movementDirection.y == -1) {
-            aimRotation = new Vector3(0, 180, 0);
+            aimRotation = vecY180;
         }
         // West
         else if (movementDirection.x == -1) {
-            aimRotation = new Vector3(0, 270, 0);
+            aimRotation = vecY270;
         }
 
         transform.rotation = Quaternion.Euler(aimRotation);
@@ -276,7 +280,7 @@ public class PlayerAnimator : MonoBehaviour {
         if (player.DiesOnMovement(player.CurrentTileIndex, movementDirection)) {
             Tile tileToReach = player.GridManager.GetTileAtIndex(player.CurrentTileIndex + movementDirection);
 
-            if (tileToReach == null || tileToReach.tileType == TileType.Pathless || tileToReach.tileType == TileType.Empty || tileToReach.tileType == TileType.Border) {
+            if (tileToReach == null || tileToReach.tileType == TileType.Pathless || tileToReach.tileType == TileType.Empty || tileToReach.tileType == TileType.Border || (tileToReach.TileAnimator != null && tileToReach.TileAnimator.IsDown)) {
                 ActivateTrigger(player.PlayerData.DeathFarTrigger, currentOrientation - movementDirection);
             } else {
                 ActivateTrigger(player.PlayerData.DeathCloseTrigger, currentOrientation - movementDirection);
@@ -311,50 +315,52 @@ public class PlayerAnimator : MonoBehaviour {
     }
 
     private IEnumerator DeathAnimationExit() {
-        player.GridManager.SinkLevel(false, true);
+        player.GridManager.SinkLevel(false, true, player.GridManager.startTile.TileAnimator.IsDown, true);
 
-        float dissolvingTime = 0;
+        float startTime = Time.time;
+        float endTime = Time.time + player.GridManager.GridData.tileWrapFadeOutDuration;
 
         SkinnedMeshRenderer meshRenderer = playerRenderer.GetComponent<SkinnedMeshRenderer>();
         Material[] originalMaterials = meshRenderer.sharedMaterials;
+        int materialLength = meshRenderer.materials.Length;
 
-        while (dissolvingTime < player.GridManager.GridData.tileWrapFadeOutDuration) {
-            foreach (Material material in meshRenderer.materials) {
-                material.SetFloat(player.GridManager.TileData.playerFragmentationName, (dissolvingTime / player.GridManager.GridData.tileWrapFadeInDuration));
+        while (Time.time < endTime) {
+            for (int i = 0; i < materialLength; i++) {
+                meshRenderer.materials[i].SetFloat(player.GridManager.TileData.playerFragmentationName,((Time.time - startTime) / (endTime - startTime)));
             }
 
-            dissolvingTime += Time.deltaTime;
             transform.localPosition -= Vector3.one * Time.deltaTime;
 
             yield return null;
         }
 
-        foreach (Material material in meshRenderer.materials) {
-            material.SetFloat(player.GridManager.TileData.playerFragmentationName, 1);
+        for(int i = 0; i < materialLength; i++) {
+            meshRenderer.materials[i].SetFloat(player.GridManager.TileData.playerFragmentationName, 1);
         }
 
         player.GridManager.AlignPlayerRotation();
 
+        while(player.GridManager.IsLevelDown() == false)
+            yield return null;
+
         player.GridManager.ResetLevel();
 
-        StartCoroutine(player.GridManager.RiseLevel());
+        yield return null;
 
-        // We have to manually raise the starting tile, since the rise level method ignores it
-        player.GridManager.startTile.TileAnimator.MoveUp(false, true);
+        StartCoroutine(player.GridManager.RiseLevel(false, true, false, true));
 
         while (player.GridManager.IsLevelRisingUp) {
             yield return null;
         }
 
         transform.localPosition = player.GridManager.startTile.transform.position + player.GridManager.GridData.PlayerSpawnOffset;
-        dissolvingTime = 0;
+        startTime = Time.time;
+        endTime = Time.time + player.GridManager.GridData.tileWrapFadeOutDuration;
 
-        while (dissolvingTime < player.GridManager.GridData.tileWrapFadeOutDuration) {
-            foreach (Material material in meshRenderer.materials) {
-                material.SetFloat(player.GridManager.TileData.playerFragmentationName, 1.0f - (dissolvingTime / player.GridManager.GridData.tileWrapFadeInDuration));
+        while (Time.time < endTime) {
+            for(int i = 0; i < materialLength; i++) {
+                meshRenderer.materials[i].SetFloat(player.GridManager.TileData.playerFragmentationName, 1.0f - ((Time.time - startTime) / (endTime - startTime)));
             }
-
-            dissolvingTime += Time.deltaTime;
 
             yield return null;
         }

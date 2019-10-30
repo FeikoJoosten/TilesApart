@@ -3,7 +3,11 @@
 public class BackgroundMusicPlayer : AudioPlayer {
     [SerializeField] private AudioClip[] backgroundMusicSongs = null;
 
+    private int backgroundMusicSongsCount = 0;
+
     protected override void Start() {
+        backgroundMusicSongsCount = backgroundMusicSongs.Length;
+
         base.Start();
 
         StartBackGroundMusic();
@@ -26,13 +30,13 @@ public class BackgroundMusicPlayer : AudioPlayer {
     }
 
     private AudioClip GetRandomAudioClip(AudioClip lastPlayedClip = null) {
-        if (backgroundMusicSongs.Length == 0) return null;
-        if (backgroundMusicSongs.Length == 1) return backgroundMusicSongs[0];
+        if (backgroundMusicSongsCount == 0) return null;
+        if (backgroundMusicSongsCount == 1) return backgroundMusicSongs[0];
 
-        AudioClip clipToReturn = backgroundMusicSongs[Random.Range(0, backgroundMusicSongs.Length)];
+        AudioClip clipToReturn = backgroundMusicSongs[Random.Range(0, backgroundMusicSongsCount)];
 
         while (clipToReturn == lastPlayedClip) {
-            clipToReturn = backgroundMusicSongs[Random.Range(0, backgroundMusicSongs.Length)];
+            clipToReturn = backgroundMusicSongs[Random.Range(0, backgroundMusicSongsCount)];
         }
 
         return clipToReturn;

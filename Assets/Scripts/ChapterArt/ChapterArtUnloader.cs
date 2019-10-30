@@ -5,7 +5,7 @@ public class ChapterArtUnloader : MonoBehaviour {
     private void Awake() {
         ChapterArtUnloader[] otherChapterArt = FindObjectsOfType<ChapterArtUnloader>();
 
-        for (int i = 0; i < otherChapterArt.Length; i++) {
+        for (int i = 0, length = otherChapterArt.Length; i < length; i++) {
             if (otherChapterArt[i].gameObject == gameObject) continue;
             if (otherChapterArt[i].gameObject.name != gameObject.name) continue;
 

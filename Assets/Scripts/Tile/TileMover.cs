@@ -1,6 +1,4 @@
-﻿using System.Collections;
-using System.Collections.Generic;
-using UnityEngine;
+﻿using UnityEngine;
 
 public partial class TileMover : MonoBehaviour {
     private bool isDragging;
@@ -11,16 +9,18 @@ public partial class TileMover : MonoBehaviour {
     private Vector3 startScreenPosition;
     private Tile selectedTile;
     private GridManager gridManager;
+    private RaycastHit[] hits = new RaycastHit[10];
     public GridManager GridManager {
         get {
             if (gridManager != null) return gridManager;
 
             GameObject[] gameObjects = gameObject.scene.GetRootGameObjects();
-            for (int i = 0; i < gameObjects.Length; i++) {
-                if (gameObjects[i].GetComponent<GridManager>() != null) {
-                    gridManager = gameObjects[i].GetComponent<GridManager>();
-                    break;
-                }
+            for (int i = 0, length = gameObjects.Length; i < length; i++) {
+                GridManager manager = gameObjects[i].GetComponent<GridManager>();
+                if (manager == null) continue;
+
+                gridManager = manager;
+                break;
             }
             return gridManager;
         }
@@ -66,8 +66,8 @@ public partial class TileMover : MonoBehaviour {
         }
 
         // In case we are still in a move and it's not detected properly
-        if (GridManager.tempTile != null)
-            if (GridManager.tempTile.activeSelf) return;
+        if (GridManager.TempTile != null)
+            if (GridManager.TempTile.activeSelf) return;
 
         // Make sure that the game never accidentally blocks input
         if (Input.GetMouseButton(0) == false && hasPressed) {
@@ -82,16 +82,17 @@ public partial class TileMover : MonoBehaviour {
         // When the player is dragging
         if (isDragging && selectedTile != null) {
             Vector3 inputDirection = new Vector3(Input.mousePosition.x - startScreenPosition.x, 0, Input.mousePosition.y - startScreenPosition.y);
+            float inputDirectionLength = inputDirection.magnitude;
 
             // Make sure the camera rotation is kept in mind
             inputDirection = transform.rotation * inputDirection;
 
             // Only highlight one line when movement is evident
-            if (inputDirection.magnitude > GridManager.GridData.minimumDraggingRange) {
+            if (inputDirectionLength > GridManager.GridData.minimumDraggingRange) {
                 UpdateNeighbours(inputDirection);
             }
             if (onlyDisplayLine) {
-                if (inputDirection.magnitude < GridManager.GridData.minimumDraggingRange) {
+                if (inputDirectionLength < GridManager.GridData.minimumDraggingRange) {
                     //UpdateNeighboursBack(inputDirection);
                 }
             }
@@ -99,7 +100,7 @@ public partial class TileMover : MonoBehaviour {
             // Move tiles once you release the mouse button
             if (Input.GetMouseButtonUp(0) == false) return;
 
-            if (inputDirection.magnitude > GridManager.GridData.minimumDraggingRange) {
+            if (inputDirectionLength > GridManager.GridData.minimumDraggingRange) {
                 ActivateTileMovement(inputDirection);
             }
             ResetDragginInformation();
@@ -111,10 +112,10 @@ public partial class TileMover : MonoBehaviour {
         // Raycast to touched object
         Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
 
-        if (Physics.Raycast(ray, out RaycastHit hit)) {
+	    if (Physics.Raycast(ray, out RaycastHit hit)) {
             // If the drag starts at an object
             selectedTile = hit.collider.gameObject.GetComponent<Tile>();
-            if (selectedTile == null || selectedTile.tileType == TileType.End || selectedTile.tileType == TileType.Start) return;
+		    if (selectedTile == null || selectedTile.tileType == TileType.End || selectedTile.tileType == TileType.Start) return;
 
             if (Application.isFocused == false) return;
 
@@ -124,9 +125,8 @@ public partial class TileMover : MonoBehaviour {
             hasPressed = true;
 
             // Recolor tiles
-            neighbours.Clear();
-            neighbours = GetCrossNeighbours(selectedTile);
-            ColorFadeIn(neighbours);
+            GetCrossNeighbours(selectedTile);
+            ColorFadeIn(crossNeighbours);
         }
     }
 
@@ -143,9 +143,9 @@ public partial class TileMover : MonoBehaviour {
         if (firstMove) {
             firstMove = false;
 
-            AnalyticsManager.Instance.RecordCustomEvent("PlayerFirstMove", new Dictionary<string, object> {
-                { "PlayerFirstMoveSinceLevelLoaded", Time.timeSinceLevelLoad }
-            });
+            //AnalyticsManager.Instance.RecordCustomEvent("PlayerFirstMove", new Dictionary<string, object> {
+            //    { "PlayerFirstMoveSinceLevelLoaded", Time.timeSinceLevelLoad }
+            //});
         }
 
         // Move tiles
@@ -162,7 +162,7 @@ public partial class TileMover : MonoBehaviour {
         selectedTile = null;
 
         // Reset tile colors
-        ColorFadeOut(neighbours);
+        ColorFadeOut(crossNeighbours);
         onlyDisplayLine = false;
     }
 }

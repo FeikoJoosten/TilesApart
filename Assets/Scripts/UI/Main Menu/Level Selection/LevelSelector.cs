@@ -54,8 +54,8 @@ public class LevelSelector : MonoBehaviour {
     }
 
     public void LoadLevel() {
-        if (levelToLoad.Length == 0) {
-            Debug.LogError("You tried to load a level that doesn't excist");
+        if (string.IsNullOrEmpty(levelToLoad)) {
+            Debug.LogError("You tried to load a level that doesn't exist");
             return;
         }
 

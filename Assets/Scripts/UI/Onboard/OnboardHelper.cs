@@ -57,12 +57,11 @@ public class OnboardHelper : MonoBehaviour {
     private IEnumerator RepeatOnboardingAnimation() {
         while (Application.isPlaying) {
             // If the animation should play again, play it and reset the current timing value
-            if (currentTiming > targetTiming) {
+            if (Time.time > targetTiming) {
                 animationObject.Play();
-                targetTiming += repeatingDelay;
+                targetTiming = Time.time + repeatingDelay;
             }
 
-            currentTiming += Time.deltaTime;
             yield return null;
         }
     }

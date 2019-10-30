@@ -14,7 +14,7 @@ public class SceneLoader : MonoBehaviour {
     private void Awake() {
         if (autoLoad == false) return;
         if (Application.isEditor && SceneManager.GetActiveScene().buildIndex != gameObject.scene.buildIndex) return;
-        if (sceneToLoad.Length == 0) {
+        if (string.IsNullOrEmpty(sceneToLoad)) {
             return;
         }
 
@@ -26,7 +26,7 @@ public class SceneLoader : MonoBehaviour {
     }
 
     public void LoadSceneWithFade() {
-        if (sceneToLoad.Length == 0) {
+        if (string.IsNullOrEmpty(sceneToLoad)) {
             return;
         }
 
@@ -34,7 +34,7 @@ public class SceneLoader : MonoBehaviour {
     }
 
     private IEnumerator LoadWithFade() {
-        if (sceneToLoad.Length == 0) {
+        if (string.IsNullOrEmpty(sceneToLoad)) {
             yield break;
         }
 
@@ -48,7 +48,7 @@ public class SceneLoader : MonoBehaviour {
     }
 
     public void LoadScene() {
-        if (sceneToLoad.Length == 0) {
+        if (string.IsNullOrEmpty(sceneToLoad)) {
             return;
         }
         if (SceneUtility.GetBuildIndexByScenePath(sceneToLoad) == -1) {

@@ -42,7 +42,7 @@ public class LevelManager : Singleton<LevelManager> {
     public PreLoader PreLoader => preLoader ?? (preLoader = gameObject.AddComponent<PreLoader>());
 
     [SerializeField]
-    private List<Chapter> chapters = null;
+    private List<Chapter> chapters = new List<Chapter>();
     public List<Chapter> Chapters => chapters;
     [SerializeField]
     [Scene]
@@ -67,17 +67,23 @@ public class LevelManager : Singleton<LevelManager> {
     public int SessionPlayedLevelCount => sessionPlayedLevelCount;
     public Scene CurrentGameScene { get; private set; }
 
-    private Vector2Int currentLevel = new Vector2Int(-1, -1);
+    private Vector2Int currentLevel = Vector2Extensions.Minus1Int;
     public Vector2Int CurrentLevel => currentLevel;
-    private Vector2Int lastPlayedLevel = new Vector2Int(-1, -1);
+    private Vector2Int lastPlayedLevel = Vector2Extensions.Minus1Int;
     public Vector2Int LastPlayedLevel => lastPlayedLevel;
     private Dictionary<string, bool> levelCompletionInfo = new Dictionary<string, bool>();
     private Dictionary<string, int> levelReplayCounter = new Dictionary<string, int>();
     private Dictionary<string, int> levelMinimalStepsRequiredCounter = new Dictionary<string, int>();
     private Dictionary<string, int> levelTotalStepsRequiredCounter = new Dictionary<string, int>();
 
+    public int ChaptersCount { get; private set; }
+    public int BonusChaptersCount { get; private set; }
+
     protected override void Awake() {
         base.Awake();
+
+        ChaptersCount = chapters.Count;
+        BonusChaptersCount = bonusChapters.Count;
 
         LoadProgress();
 
@@ -103,7 +109,7 @@ public class LevelManager : Singleton<LevelManager> {
         if (IsBonusLevel(levelName)) {
             int bonusLevelIndex = -1;
 
-            for (int i = 0; i < bonusChapters.Count; i++) {
+            for (int i = 0; i < BonusChaptersCount; i++) {
                 if (bonusChapters[i] != levelName) continue;
 
                 bonusLevelIndex = i;
@@ -115,8 +121,8 @@ public class LevelManager : Singleton<LevelManager> {
             return;
         }
 
-        for (int i = 0; i < chapters.Count; i++) {
-            for (int y = 0; y < chapters[i].levels.Count; y++) {
+        for (int i = 0; i < ChaptersCount; i++) {
+            for (int y = 0; y < chapters[i].LevelsCount; y++) {
                 if (string.Equals(chapters[i].levels[y], levelName, StringComparison.CurrentCultureIgnoreCase)) {
                     SelectCurrentLevel(i, y, useFadeEffect);
                     return;
@@ -126,7 +132,8 @@ public class LevelManager : Singleton<LevelManager> {
     }
 
     public void SelectCurrentLevel(int chapterIndex, int levelIndex, bool useFadeEffect = false) {
-        currentLevel = new Vector2Int(chapterIndex, levelIndex);
+        currentLevel.x = chapterIndex;
+        currentLevel.y = levelIndex;
         timeSinceLevelStarted = Time.time;
 
         // We know this is a bonus level, because we are the only one sending -100 as a value for the chapter index
@@ -145,20 +152,20 @@ public class LevelManager : Singleton<LevelManager> {
         }
 
         // Try and select a game scene in case this values hasn't been assigned yet
-        if (currentLevel == new Vector2Int(-1, -1)) {
+        if (currentLevel == Vector2Extensions.Minus1) {
             SelectCurrentLevel(SceneManager.GetActiveScene().buildIndex);
         }
 
         // If we cannot retrieve a game scene, return an empty string
-        if (currentLevel == new Vector2Int(-1, -1)) {
+        if (currentLevel == Vector2Extensions.Minus1) {
             return "";
         }
 
-        if (currentLevel.x >= chapters.Count) {
+        if (currentLevel.x >= ChaptersCount) {
             return "";
         }
 
-        if (currentLevel.y >= chapters[currentLevel.x].levels.Count) {
+        if (currentLevel.y >= chapters[currentLevel.x].LevelsCount) {
             return "";
         }
 
@@ -170,11 +177,11 @@ public class LevelManager : Singleton<LevelManager> {
             return bonusChapters[levelIndex];
         }
 
-        if (chapterIndex > chapters.Count || chapterIndex < 0) {
+        if (chapterIndex > ChaptersCount || chapterIndex < 0) {
             return "";
         }
 
-        if (levelIndex > chapters[chapterIndex].levels.Count || levelIndex < 0) {
+        if (levelIndex > chapters[chapterIndex].LevelsCount || levelIndex < 0) {
             return "";
         }
 
@@ -186,7 +193,7 @@ public class LevelManager : Singleton<LevelManager> {
             return GetNextBonusLevel(GetCurrentLevelName());
         }
 
-        if (currentLevel == new Vector2Int(-1, -1)) {
+        if (currentLevel == Vector2Extensions.Minus1) {
             SelectCurrentLevel(SceneManager.GetActiveScene().buildIndex);
         }
 
@@ -194,7 +201,7 @@ public class LevelManager : Singleton<LevelManager> {
             sessionPlayedLevelCount++;
         }
 
-        if (currentLevel.x >= chapters.Count) {
+        if (currentLevel.x >= ChaptersCount) {
             Debug.Log("There are no more levels available");
             return "";
         }
@@ -204,7 +211,7 @@ public class LevelManager : Singleton<LevelManager> {
             return "";
         }
 
-        if (currentLevel.y >= chapters[currentLevel.x].levels.Count) {
+        if (currentLevel.y >= chapters[currentLevel.x].LevelsCount) {
             Debug.Log("There are no more levels available");
             return "";
         }
@@ -217,14 +224,14 @@ public class LevelManager : Singleton<LevelManager> {
         string selectedLevel = "";
 
         while (selectedLevel == "") {
-            if (nextLevel.y + 1 >= chapters[currentLevel.x].levels.Count) {
+            if (nextLevel.y + 1 >= chapters[currentLevel.x].LevelsCount) {
                 nextLevel.x += 1;
                 nextLevel.y = 0;
             } else {
                 nextLevel.y++;
             }
 
-            if (nextLevel.x >= chapters.Count) {
+            if (nextLevel.x >= ChaptersCount) {
                 break;
             }
 
@@ -240,7 +247,7 @@ public class LevelManager : Singleton<LevelManager> {
             currentLevel = nextLevel;
         }
 
-        if (nextLevel.x < chapters.Count) {
+        if (nextLevel.x < ChaptersCount) {
             return chapters[nextLevel.x].levels[nextLevel.y];
         }
 
@@ -250,7 +257,7 @@ public class LevelManager : Singleton<LevelManager> {
     public bool WillAdvanceChapter() {
         if (currentLevel.x == -100) return false;
 
-        if (currentLevel == new Vector2Int(-1, -1) || currentLevel.x < 0) {
+        if (currentLevel == Vector2Extensions.Minus1 || currentLevel.x < 0) {
             SelectCurrentLevel(SceneManager.GetActiveScene().buildIndex);
         }
 
@@ -258,14 +265,14 @@ public class LevelManager : Singleton<LevelManager> {
         string selectedLevel = "";
 
         while (selectedLevel == "") {
-            if (nextLevel.y + 1 >= chapters[currentLevel.x].levels.Count) {
+            if (nextLevel.y + 1 >= chapters[currentLevel.x].LevelsCount) {
                 nextLevel.x += 1;
                 nextLevel.y = 0;
             } else {
                 nextLevel.y++;
             }
 
-            if (nextLevel.x >= chapters.Count) {
+            if (nextLevel.x >= ChaptersCount) {
                 break;
             }
 
@@ -280,7 +287,7 @@ public class LevelManager : Singleton<LevelManager> {
     }
 
     public List<string> GetChapterLevels(int chapterIndex) {
-        if (chapterIndex < chapters.Count) return chapters[chapterIndex].levels;
+        if (chapterIndex < ChaptersCount) return chapters[chapterIndex].levels;
 
         Debug.LogError("The chapter index you assigned is not available");
         return null;
@@ -291,13 +298,13 @@ public class LevelManager : Singleton<LevelManager> {
     }
 
     public bool GetChapterCompletionStatus(int chapterIndex) {
-        if (chapterIndex < 0 || chapterIndex > chapters.Count) return false;
+        if (chapterIndex < 0 || chapterIndex > ChaptersCount) return false;
 
         // The first chapter is always enabled
         if (chapterIndex == 0) return true;
 
         // If the last level from the previous chapter has been completed, return true. Else return false
-        return GetLevelCompletionStatus(chapters[chapterIndex - 1].levels[chapters[chapterIndex - 1].levels.Count - 1]);
+        return GetLevelCompletionStatus(chapters[chapterIndex - 1].levels[chapters[chapterIndex - 1].LevelsCount - 1]);
     }
 
     public bool GetLevelCompletionStatus(string levelToCheck) {
@@ -318,9 +325,9 @@ public class LevelManager : Singleton<LevelManager> {
             return false;
         }
 
-        foreach (Chapter chapter in Chapters) {
-            foreach (string levelName in chapter.levels) {
-                if (string.Equals(levelName.ToLower(), levelToCheck.ToLower())) return true;
+        for (int i = 0; i < ChaptersCount; i++) {
+            for (int j = 0; j < Chapters[i].LevelsCount; j++) {
+                if (string.Equals(Chapters[i].levels[j].ToLower(), levelToCheck.ToLower())) return true;
             }
         }
 
@@ -357,14 +364,14 @@ public class LevelManager : Singleton<LevelManager> {
         if (currentLevel.x == -100) {
             if (bonusChapters == null) return 0;
 
-            return bonusChapters.Count;
+            return BonusChaptersCount;
         }
 
         if (chapters == null) return 0;
-        if (currentLevel.x >= chapters.Count || currentLevel.x < 0) return 0;
+        if (currentLevel.x >= ChaptersCount || currentLevel.x < 0) return 0;
         if (chapters[currentLevel.x].levels == null) return 0;
 
-        return chapters[currentLevel.x].levels.Count;
+        return chapters[currentLevel.x].LevelsCount;
     }
 
     public void LoadMainMenu() {
@@ -415,8 +422,8 @@ public class LevelManager : Singleton<LevelManager> {
 
         GameObject[] rootObjects = CurrentGameScene.GetRootGameObjects();
 
-        foreach (GameObject rootObject in rootObjects) {
-            rootObject.SetActive(true);
+        for (int i = 0, length = rootObjects.Length; i < length; i++) {
+            rootObjects[i].SetActive(true);
         }
     }
 
@@ -476,19 +483,21 @@ public class LevelManager : Singleton<LevelManager> {
         SetLastPlayedLevel();
 
         if (chapters != null) {
-            for (int i = 0; i < chapters.Count; i++) {
-                foreach (string levelName in chapters[i].levels) {
-                    if (levelCompletionInfo.ContainsKey(levelName)) {
-                        PlayerPrefs.SetInt(string.Format(levelProgressionFormat, levelName),
-                            levelCompletionInfo[levelName] ? 1 : 0);
+            for (int i = 0; i < ChaptersCount; i++) {
+                for (int j = 0; j < chapters[i].LevelsCount; j++) {
+                    if (levelCompletionInfo.ContainsKey(chapters[i].levels[j])) {
+                        PlayerPrefs.SetInt(string.Format(levelProgressionFormat, chapters[i].levels[j]),
+                            levelCompletionInfo[chapters[i].levels[j]] ? 1 : 0);
                     }
-                    if (levelReplayCounter.ContainsKey(levelName)) {
-                        PlayerPrefs.SetInt(string.Format(levelReplayCounterFormat, levelName),
-                            levelReplayCounter[levelName]);
+
+                    if (levelReplayCounter.ContainsKey(chapters[i].levels[j])) {
+                        PlayerPrefs.SetInt(string.Format(levelReplayCounterFormat, chapters[i].levels[j]),
+                            levelReplayCounter[chapters[i].levels[j]]);
                     }
-                    if (levelMinimalStepsRequiredCounter.ContainsKey(levelName)) {
-                        PlayerPrefs.SetInt(string.Format(levelMinimalStepsRequiredFormat, levelName),
-                            levelMinimalStepsRequiredCounter[levelName]);
+
+                    if (levelMinimalStepsRequiredCounter.ContainsKey(chapters[i].levels[j])) {
+                        PlayerPrefs.SetInt(string.Format(levelMinimalStepsRequiredFormat, chapters[i].levels[j]),
+                            levelMinimalStepsRequiredCounter[chapters[i].levels[j]]);
                     }
                 }
             }
@@ -496,25 +505,27 @@ public class LevelManager : Singleton<LevelManager> {
 
         if (bonusChapters == null) return;
 
-        foreach (string bonusLevel in bonusChapters) {
-            if (levelCompletionInfo.ContainsKey(bonusLevel)) {
-                PlayerPrefs.SetInt(string.Format(levelProgressionFormat, bonusLevel),
-                    levelCompletionInfo[bonusLevel] ? 1 : 0);
+        for (int i = 0; i < BonusChaptersCount; i++) {
+            if (levelCompletionInfo.ContainsKey(bonusChapters[i])) {
+                PlayerPrefs.SetInt(string.Format(levelProgressionFormat, bonusChapters[i]),
+                    levelCompletionInfo[bonusChapters[i]] ? 1 : 0);
             }
-            if (levelReplayCounter.ContainsKey(bonusLevel)) {
-                PlayerPrefs.SetInt(string.Format(levelReplayCounterFormat, bonusLevel),
-                    levelReplayCounter[bonusLevel]);
+
+            if (levelReplayCounter.ContainsKey(bonusChapters[i])) {
+                PlayerPrefs.SetInt(string.Format(levelReplayCounterFormat, bonusChapters[i]),
+                    levelReplayCounter[bonusChapters[i]]);
             }
-            if (levelMinimalStepsRequiredCounter.ContainsKey(bonusLevel)) {
-                PlayerPrefs.SetInt(string.Format(levelMinimalStepsRequiredFormat, bonusLevel),
-                    levelMinimalStepsRequiredCounter[bonusLevel]);
+
+            if (levelMinimalStepsRequiredCounter.ContainsKey(bonusChapters[i])) {
+                PlayerPrefs.SetInt(string.Format(levelMinimalStepsRequiredFormat, bonusChapters[i]),
+                    levelMinimalStepsRequiredCounter[bonusChapters[i]]);
             }
         }
     }
 
     private void SetLastPlayedLevel() {
         // Store the last played level, but only save if the player actually played a level
-        if (currentLevel != new Vector2Int(-1, -1)) {
+        if (currentLevel != Vector2Extensions.Minus1) {
             PlayerPrefs.SetInt(lastChapterLocation, currentLevel.x);
             PlayerPrefs.SetInt(lastLevelLocation, currentLevel.y);
 
@@ -535,44 +546,48 @@ public class LevelManager : Singleton<LevelManager> {
         SelectCurrentLevel(SceneManager.GetActiveScene().buildIndex);
 
         // Retrieve the last played level, but only if we are not starting from a level scene
-        if (lastPlayedLevel == new Vector2Int(-1, -1)) {
+        if (lastPlayedLevel == Vector2Extensions.Minus1) {
             if (PlayerPrefs.HasKey(lastChapterLocation) && PlayerPrefs.HasKey(lastLevelLocation)) {
-                lastPlayedLevel = new Vector2Int(PlayerPrefs.GetInt(lastChapterLocation), PlayerPrefs.GetInt(lastLevelLocation));
+                lastPlayedLevel.x = PlayerPrefs.GetInt(lastChapterLocation);
+                lastPlayedLevel.y = PlayerPrefs.GetInt(lastLevelLocation);
             }
         }
 
         if (chapters != null) {
-            for (int i = 0; i < chapters.Count; i++) {
-                foreach (string levelName in chapters[i].levels) {
+            for (int i = 0; i < ChaptersCount; i++) {
+                for (int j = 0; j < chapters[i].LevelsCount; j++) {
                     // Only load a player pref setting if it has actually been stored
-                    if (PlayerPrefs.HasKey(string.Format(levelProgressionFormat, levelName))) {
-                        if (levelCompletionInfo.ContainsKey(levelName)) {
-                            levelCompletionInfo[levelName] =
-                                PlayerPrefs.GetInt(string.Format(levelProgressionFormat, levelName)) == 1;
-                        } else {
-                            levelCompletionInfo.Add(levelName,
-                                PlayerPrefs.GetInt(string.Format(levelProgressionFormat, levelName)) == 1);
+                    if (PlayerPrefs.HasKey(string.Format(levelProgressionFormat, chapters[i].levels[j]))) {
+                        if (levelCompletionInfo.ContainsKey(chapters[i].levels[j])) {
+                            levelCompletionInfo[chapters[i].levels[j]] =
+                                PlayerPrefs.GetInt(string.Format(levelProgressionFormat, chapters[i].levels[j])) == 1;
+                        }
+                        else {
+                            levelCompletionInfo.Add(chapters[i].levels[j],
+                                PlayerPrefs.GetInt(string.Format(levelProgressionFormat, chapters[i].levels[j])) == 1);
                         }
                     }
 
-                    if (PlayerPrefs.HasKey(string.Format(levelReplayCounterFormat, levelName))) {
-                        if (levelReplayCounter.ContainsKey(levelName)) {
-                            levelReplayCounter[levelName] =
-                                PlayerPrefs.GetInt(string.Format(levelReplayCounterFormat, levelName));
-                        } else {
-                            levelReplayCounter.Add(levelName,
-                                PlayerPrefs.GetInt(string.Format(levelReplayCounterFormat, levelName)));
+                    if (PlayerPrefs.HasKey(string.Format(levelReplayCounterFormat, chapters[i].levels[j]))) {
+                        if (levelReplayCounter.ContainsKey(chapters[i].levels[j])) {
+                            levelReplayCounter[chapters[i].levels[j]] =
+                                PlayerPrefs.GetInt(string.Format(levelReplayCounterFormat, chapters[i].levels[j]));
+                        }
+                        else {
+                            levelReplayCounter.Add(chapters[i].levels[j],
+                                PlayerPrefs.GetInt(string.Format(levelReplayCounterFormat, chapters[i].levels[j])));
                         }
                     }
 
-                    if (!PlayerPrefs.HasKey(string.Format(levelMinimalStepsRequiredFormat, levelName))) continue;
+                    if (!PlayerPrefs.HasKey(string.Format(levelMinimalStepsRequiredFormat, chapters[i].levels[j]))) continue;
 
-                    if (levelMinimalStepsRequiredCounter.ContainsKey(levelName)) {
-                        levelMinimalStepsRequiredCounter[levelName] =
-                            PlayerPrefs.GetInt(string.Format(levelMinimalStepsRequiredFormat, levelName));
-                    } else {
-                        levelMinimalStepsRequiredCounter.Add(levelName,
-                            PlayerPrefs.GetInt(string.Format(levelMinimalStepsRequiredFormat, levelName)));
+                    if (levelMinimalStepsRequiredCounter.ContainsKey(chapters[i].levels[j])) {
+                        levelMinimalStepsRequiredCounter[chapters[i].levels[j]] =
+                            PlayerPrefs.GetInt(string.Format(levelMinimalStepsRequiredFormat, chapters[i].levels[j]));
+                    }
+                    else {
+                        levelMinimalStepsRequiredCounter.Add(chapters[i].levels[j],
+                            PlayerPrefs.GetInt(string.Format(levelMinimalStepsRequiredFormat, chapters[i].levels[j])));
                     }
                 }
             }
@@ -580,35 +595,38 @@ public class LevelManager : Singleton<LevelManager> {
 
         if (bonusChapters == null) return;
 
-        foreach (string bonusLevel in bonusChapters) {
+        for (int i = 0; i < BonusChaptersCount; i++) {
             // Only load a player pref setting if it has actually been stored
-            if (PlayerPrefs.HasKey(string.Format(levelProgressionFormat, bonusLevel))) {
-                if (levelCompletionInfo.ContainsKey(bonusLevel)) {
-                    levelCompletionInfo[bonusLevel] =
-                        PlayerPrefs.GetInt(string.Format(levelProgressionFormat, bonusLevel)) == 1;
-                } else {
-                    levelCompletionInfo.Add(bonusLevel,
-                        PlayerPrefs.GetInt(string.Format(levelProgressionFormat, bonusLevel)) == 1);
+            if (PlayerPrefs.HasKey(string.Format(levelProgressionFormat, bonusChapters[i]))) {
+                if (levelCompletionInfo.ContainsKey(bonusChapters[i])) {
+                    levelCompletionInfo[bonusChapters[i]] =
+                        PlayerPrefs.GetInt(string.Format(levelProgressionFormat, bonusChapters[i])) == 1;
+                }
+                else {
+                    levelCompletionInfo.Add(bonusChapters[i],
+                        PlayerPrefs.GetInt(string.Format(levelProgressionFormat, bonusChapters[i])) == 1);
                 }
             }
 
-            if (PlayerPrefs.HasKey(string.Format(levelReplayCounterFormat, bonusLevel))) {
-                if (levelReplayCounter.ContainsKey(bonusLevel)) {
-                    levelReplayCounter[bonusLevel] =
-                        PlayerPrefs.GetInt(string.Format(levelReplayCounterFormat, bonusLevel));
-                } else {
-                    levelReplayCounter.Add(bonusLevel,
-                        PlayerPrefs.GetInt(string.Format(levelReplayCounterFormat, bonusLevel)));
+            if (PlayerPrefs.HasKey(string.Format(levelReplayCounterFormat, bonusChapters[i]))) {
+                if (levelReplayCounter.ContainsKey(bonusChapters[i])) {
+                    levelReplayCounter[bonusChapters[i]] =
+                        PlayerPrefs.GetInt(string.Format(levelReplayCounterFormat, bonusChapters[i]));
+                }
+                else {
+                    levelReplayCounter.Add(bonusChapters[i],
+                        PlayerPrefs.GetInt(string.Format(levelReplayCounterFormat, bonusChapters[i])));
                 }
             }
 
-            if (PlayerPrefs.HasKey(string.Format(levelMinimalStepsRequiredFormat, bonusLevel))) {
-                if (levelMinimalStepsRequiredCounter.ContainsKey(bonusLevel)) {
-                    levelMinimalStepsRequiredCounter[bonusLevel] =
-                        PlayerPrefs.GetInt(string.Format(levelMinimalStepsRequiredFormat, bonusLevel));
-                } else {
-                    levelMinimalStepsRequiredCounter.Add(bonusLevel,
-                        PlayerPrefs.GetInt(string.Format(levelMinimalStepsRequiredFormat, bonusLevel)));
+            if (PlayerPrefs.HasKey(string.Format(levelMinimalStepsRequiredFormat, bonusChapters[i]))) {
+                if (levelMinimalStepsRequiredCounter.ContainsKey(bonusChapters[i])) {
+                    levelMinimalStepsRequiredCounter[bonusChapters[i]] =
+                        PlayerPrefs.GetInt(string.Format(levelMinimalStepsRequiredFormat, bonusChapters[i]));
+                }
+                else {
+                    levelMinimalStepsRequiredCounter.Add(bonusChapters[i],
+                        PlayerPrefs.GetInt(string.Format(levelMinimalStepsRequiredFormat, bonusChapters[i])));
                 }
             }
         }
@@ -618,10 +636,10 @@ public class LevelManager : Singleton<LevelManager> {
         // We're already loading, why load again?
         if (IsLoadingChapterArt) yield break;
 
-        if (nextChapter.x >= chapters.Count) {
+        if (nextChapter.x >= ChaptersCount) {
             yield break;
         }
-        if (chapters[nextChapter.x].chapterArt.Length == 0) {
+        if (string.IsNullOrEmpty(chapters[nextChapter.x].chapterArt)) {
             yield break;
         }
 
@@ -670,12 +688,12 @@ public class LevelManager : Singleton<LevelManager> {
             levelMinimalStepsRequiredCounter.Add(levelName, levelTotalStepsRequiredCounter[levelName]);
         }
 
-        AnalyticsManager.Instance.RecordCustomEvent("OnLevelWon", new Dictionary<string, object> {
-            { "Level " + levelName + " SolvedInXSeconds", Time.time - TimeSinceLevelStarted },
-            { "Level " + levelName + " MinimalStepsRequired", levelMinimalStepsRequiredCounter[levelName] },
-            { "Level " + levelName + " TotalStepsRequired", levelTotalStepsRequiredCounter[levelName] },
-            { "Level " + levelName + " ReplayCount", levelReplayCounter.ContainsKey(levelName) ? levelReplayCounter[levelName] : 0 }
-        });
+        //AnalyticsManager.Instance.RecordCustomEvent("OnLevelWon", new Dictionary<string, object> {
+        //    { "Level " + levelName + " SolvedInXSeconds", Time.time - TimeSinceLevelStarted },
+        //    { "Level " + levelName + " MinimalStepsRequired", levelMinimalStepsRequiredCounter[levelName] },
+        //    { "Level " + levelName + " TotalStepsRequired", levelTotalStepsRequiredCounter[levelName] },
+        //    { "Level " + levelName + " ReplayCount", levelReplayCounter.ContainsKey(levelName) ? levelReplayCounter[levelName] : 0 }
+        //});
     }
 
     private void OnLevelLost(string levelName) {
@@ -685,9 +703,9 @@ public class LevelManager : Singleton<LevelManager> {
             levelReplayCounter.Add(levelName, 1);
         }
 
-        AnalyticsManager.Instance.RecordCustomEvent("OnLevelLost", new Dictionary<string, object> {
-            { "Level " + levelName + " ReplayCount", levelReplayCounter[levelName] }
-        });
+        //AnalyticsManager.Instance.RecordCustomEvent("OnLevelLost", new Dictionary<string, object> {
+        //    { "Level " + levelName + " ReplayCount", levelReplayCounter[levelName] }
+        //});
     }
 
     private void OnPlayerActivated() {
@@ -715,7 +733,7 @@ public class LevelManager : Singleton<LevelManager> {
     private string GetNextBonusLevel(string currentBonusLevel) {
         int currentIndex = -1;
 
-        for (int i = 0; i < bonusChapters.Count; i++) {
+        for (int i = 0; i < BonusChaptersCount; i++) {
             if (bonusChapters[i] != currentBonusLevel) continue;
 
             currentIndex = i;
@@ -724,7 +742,7 @@ public class LevelManager : Singleton<LevelManager> {
 
         return currentIndex == -1
             ? bonusEndScene
-            : currentIndex + 1 >= bonusChapters.Count
+            : currentIndex + 1 >= BonusChaptersCount
                 ? bonusEndScene
                 : bonusChapters[currentIndex + 1];
     }
@@ -759,9 +777,9 @@ public class LevelManager : Singleton<LevelManager> {
                     levelReplayCounter.Add(currentLevelName, 1);
                 }
 
-                AnalyticsManager.Instance.RecordCustomEvent("OnLevelStarted", new Dictionary<string, object> {
-                    {"Level " + GetCurrentLevelName() + " ReplayCount", levelReplayCounter[currentLevelName]}
-                });
+                //AnalyticsManager.Instance.RecordCustomEvent("OnLevelStarted", new Dictionary<string, object> {
+                //    {"Level " + GetCurrentLevelName() + " ReplayCount", levelReplayCounter[currentLevelName]}
+                //});
             } else if (SceneManager.GetActiveScene().name == currentLevelName && Application.isEditor) {
                 // Load in the in game UI if needed so we only need to load it once
                 if (loadedInGameUI == null && inGameUI != null) {
@@ -840,4 +858,15 @@ public struct Chapter {
     [Scene]
     public List<string> levels;
     public TileData chapterTileData;
+
+    private int? levelsCount;
+
+    public int LevelsCount {
+        get {
+            if (!levelsCount.HasValue)
+                levelsCount = levels.Count;
+
+            return levelsCount.Value;
+        }
+    }
 }

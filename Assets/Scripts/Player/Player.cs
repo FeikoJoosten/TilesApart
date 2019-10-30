@@ -15,13 +15,16 @@ public class Player : MonoBehaviour {
         get {
             if (gridManager != null) return gridManager;
 
-            GameObject[] gameObjects = gameObject.scene.GetRootGameObjects();
-            foreach (GameObject obj in gameObjects) {
-                if (obj.GetComponent<GridManager>() == null) continue;
+            GameObject[] rootObjects = gameObject.scene.GetRootGameObjects();
+            for (int i = 0, length = rootObjects.Length; i < length; i++) {
+                GridManager manager = rootObjects[i].GetComponent<GridManager>();
 
-                gridManager = obj.GetComponent<GridManager>();
+                if (manager == null) continue;
+
+                gridManager = manager;
                 break;
             }
+
             return gridManager;
         }
         set => gridManager = value;
@@ -38,7 +41,7 @@ public class Player : MonoBehaviour {
     public PlayerData PlayerData => playerData ?? ScriptableObject.CreateInstance<PlayerData>();
 
     public Vector2Int CurrentTileIndex { get; private set; }
-    public PlayerAnimator PlayerAnimtor { get; private set; }
+    public PlayerAnimator PlayerAnimator { get; private set; }
     public PlayerAudioPlayer PlayerAudioPlayer { get; private set; }
 
     private Vector2Int originalStartingIndex;
@@ -62,10 +65,10 @@ public class Player : MonoBehaviour {
 
         Tile[] allTiles = FindObjectsOfType<Tile>();
 
-        foreach (Tile tile in allTiles) {
-            if (tile.tileType != TileType.Start) continue;
+        for (int i = 0, length = allTiles.Length; i < length; i++) {
+            if (allTiles[i].tileType != TileType.Start) continue;
 
-            CurrentTileIndex = tile.tileIndex;
+            CurrentTileIndex = allTiles[i].tileIndex;
             GridManager.AlignPlayerRotation();
 
             originalStartingIndex = GridManager.startTile.tileIndex;
@@ -75,11 +78,11 @@ public class Player : MonoBehaviour {
         }
 
         Debug.LogError("Could not find the start tile, defaulting to start index of 0, 0");
-        CurrentTileIndex = new Vector2Int(0, 0);
+        CurrentTileIndex = Vector2Extensions.Zero;
     }
 
     private void Start() {
-        PlayerAnimtor = GetComponent<PlayerAnimator>();
+        PlayerAnimator = GetComponent<PlayerAnimator>();
         PlayerAudioPlayer = GetComponent<PlayerAudioPlayer>() ?? gameObject.AddComponent<PlayerAudioPlayer>();
 
         GameMenus.OnPauseMenuOpened += OnPauseMenuOpened;
@@ -110,7 +113,7 @@ public class Player : MonoBehaviour {
     }
 
     private void OnMovementStartTriggered(Vector2Int startingIndex, Vector2Int movementDirection) {
-        PlayerAnimtor.ResetPlaybackSpeed();
+        PlayerAnimator.ResetPlaybackSpeed();
 
         if (WillMoveWithTile(startingIndex, movementDirection) == false) return;
 
@@ -127,7 +130,7 @@ public class Player : MonoBehaviour {
     }
 
     public IEnumerator AnimatePlayerWrapping() {
-        SkinnedMeshRenderer playerRenderer = PlayerAnimtor.PlayerRenderer.GetComponent<SkinnedMeshRenderer>();
+        SkinnedMeshRenderer playerRenderer = PlayerAnimator.PlayerRenderer.GetComponent<SkinnedMeshRenderer>();
 
         if (playerMaterials == null) {
             playerMaterials = playerRenderer.sharedMaterials;
@@ -151,20 +154,16 @@ public class Player : MonoBehaviour {
         tempPlayer.transform.localScale = playerRenderer.transform.localScale;
 
         // Find temporary tile to parent temporary player to
-        while (GridManager.tempTile == null) {
+        while (GridManager.TempTile == null) {
             yield return null;
         }
 
-        tempPlayer.transform.parent = GridManager.tempTile.transform;
+        tempPlayer.transform.parent = GridManager.TempTile.transform;
 
-        // Hide player 
-        foreach (Material material in playerRenderer.materials) {
-            material.SetFloat(GridManager.TileData.fragmentationName, 1.0f);
-        }
-
-        // Show temp player 
-        foreach (Material material in tempPlayerRenderer.materials) {
-            material.SetFloat(GridManager.TileData.fragmentationName, 0.0f);
+        // Hide player and show temp player
+        for (int i = 0, length = playerRenderer.materials.Length; i < length; i++) {
+            playerRenderer.materials[i].SetFloat(GridManager.TileData.fragmentationName, 1.0f);
+            tempPlayerRenderer.materials[i].SetFloat(GridManager.TileData.fragmentationName, 0.0f);
         }
 
         // Setup loop timer
@@ -250,7 +249,7 @@ public class Player : MonoBehaviour {
 
         isMoving = true;
         OnPlayerStartedMoving(movementDirection);
-        PlayerAnimtor.OnPlayerStartWalking(movementDirection);
+        PlayerAnimator.OnPlayerStartWalking(movementDirection);
 
         Vector2Int newIndex = GetNextPlayerLocation(CurrentTileIndex, movementDirection);
 
@@ -280,19 +279,23 @@ public class Player : MonoBehaviour {
     }
 
     private Vector2Int GetNextPlayerLocation(Vector2Int currentIndex, Vector2Int movementDirection) {
-        Vector2Int newIndex;
+        Vector2Int newIndex = currentIndex;
 
         if (currentIndex.x + movementDirection.x > GridManager.GridSize.x - 1 && currentIndex.x + movementDirection.x > 0) {
-            newIndex = new Vector2Int(0, currentIndex.y);
+            newIndex.x = 0;
+            newIndex.y = currentIndex.y;
             Death();
         } else if (currentIndex.x + movementDirection.x < GridManager.GridSize.x - 1 && currentIndex.x + movementDirection.x < 0) {
-            newIndex = new Vector2Int(GridManager.GridSize.x - 1, currentIndex.y);
+            newIndex.x = GridManager.GridSize.x - 1;
+            newIndex.y = currentIndex.y;
             Death();
         } else if (currentIndex.y + movementDirection.y > GridManager.GridSize.y - 1 && currentIndex.y + movementDirection.y > 0) {
-            newIndex = new Vector2Int(currentIndex.x, 0);
+            newIndex.x = currentIndex.x;
+            newIndex.y = 0;
             Death();
         } else if (currentIndex.y + movementDirection.y < GridManager.GridSize.y - 1 && currentIndex.y + movementDirection.y < 0) {
-            newIndex = new Vector2Int(currentIndex.x, GridManager.GridSize.y - 1);
+            newIndex.x = currentIndex.x;
+            newIndex.y = GridManager.GridSize.y - 1;
             Death();
         } else {
             if (DiesOnMovement(currentIndex, movementDirection)) {
@@ -307,7 +310,7 @@ public class Player : MonoBehaviour {
     private void Death() {
         isDead = true;
         PlayerAudioPlayer.PlayRandomDeathSound();
-        PlayerAnimtor.ResetPlaybackSpeed();
+        PlayerAnimator.ResetPlaybackSpeed();
         OnPlayerDied(LevelManager.Instance.GetCurrentLevelName());
     }
 
@@ -323,7 +326,7 @@ public class Player : MonoBehaviour {
         if (!GridManager.GetTileAtIndex(currentIndex + movementDirection))
             return true;
 
-        if (GridManager.GetTileAtIndex(currentIndex + movementDirection).TileAnimator.isUp == false) {
+        if (GridManager.GetTileAtIndex(currentIndex + movementDirection).TileAnimator.IsUp == false) {
             return true;
         }
 
@@ -420,6 +423,6 @@ public class Player : MonoBehaviour {
         isMoving = false;
 
         if (playerMaterials != null)
-            PlayerAnimtor.PlayerRenderer.GetComponent<SkinnedMeshRenderer>().sharedMaterials = playerMaterials;
+            PlayerAnimator.PlayerRenderer.GetComponent<SkinnedMeshRenderer>().sharedMaterials = playerMaterials;
     }
 }

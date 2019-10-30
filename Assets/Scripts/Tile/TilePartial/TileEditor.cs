@@ -41,53 +41,53 @@ public partial class Tile : MonoBehaviour {
     /// <summary>
     /// Only use this method in the editor itself, use the MoveTile method in runtime.
     /// </summary>
-    [EditorButton]
+    [EditorButton, ContextMenu(nameof(MoveForwards))]
     public void MoveForwards() {
         if (Application.isPlaying) {
             Debug.LogWarning("This is a test method only, please use the MoveTile method instead");
             return;
         }
 
-        MoveTile(Vector3.forward);
+        MoveTile(Vector3.forward, true);
     }
 
     /// <summary>
     /// Only use this method in the editor itself, use the MoveTile method in runtime.
     /// </summary>
-    [EditorButton]
+    [EditorButton, ContextMenu(nameof(MoveBackwards))]
     public void MoveBackwards() {
         if (Application.isPlaying) {
             Debug.LogWarning("This is a test method only, please use the MoveTile method instead");
             return;
         }
 
-        MoveTile(Vector3.back);
+        MoveTile(Vector3.back, true);
     }
 
     /// <summary>
     /// Only use this method in the editor itself, use the MoveTile method in runtime.
     /// </summary>
-    [EditorButton]
+    [EditorButton, ContextMenu(nameof(MoveLeft))]
     public void MoveLeft() {
         if (Application.isPlaying) {
             Debug.LogWarning("This is a test method only, please use the MoveTile method instead");
             return;
         }
 
-        MoveTile(Vector3.left);
+        MoveTile(Vector3.left, true);
     }
 
     /// <summary>
     /// Only use this method in the editor itself, use the MoveTile method in runtime.
     /// </summary>
-    [EditorButton]
+    [EditorButton, ContextMenu(nameof(MoveRight))]
     public void MoveRight() {
         if (Application.isPlaying) {
             Debug.LogWarning("This is a test method only, please use the MoveTile method instead");
             return;
         }
 
-        MoveTile(Vector3.right);
+        MoveTile(Vector3.right, true);
     }
 #endif
 

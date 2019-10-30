@@ -8,7 +8,7 @@ public partial class GridManager : MonoBehaviour {
         startTile = null;
         endTile = null;
         grid.rows[0].row.Clear();
-        grid.rows.RemoveRange(1, grid.rows.Count - 1);
+        grid.rows.RemoveRange(1, GridSize.x - 1);
         CleanupScene();
 
         HandleGridUpdate();
@@ -17,8 +17,8 @@ public partial class GridManager : MonoBehaviour {
 
     [EditorButton]
     public void UpdateGridMeshes() {
-        for (int x = 0; x < grid.rows.Count; x++) {
-            for (int y = 0; y < grid.rows[x].row.Count; y++) {
+        for (int x = 0; x < GridSize.x; x++) {
+            for (int y = 0; y < GridSize.y; y++) {
                 if (!grid.rows[x].row[y])
                     continue;
 
@@ -48,15 +48,18 @@ public partial class GridManager : MonoBehaviour {
 
     public void CheckForPlayer() {
         if (startTile == null) {
-            Debug.LogError("No start tile was assigned");
+            if (Application.isPlaying) // We can assume we are currently editing the grid, no need to spit out an error if we aren't in play mode.
+                Debug.LogError("No start tile was assigned");
             return;
         }
 
         GameObject[] gameObjects = gameObject.scene.GetRootGameObjects();
-        for (int i = 0; i < gameObjects.Length; i++) {
-            if (gameObjects[i].GetComponent<Player>() == null) continue;
+        for (int i = 0, length = gameObjects.Length; i < length; i++) {
+            Player player = gameObjects[i].GetComponent<Player>();
 
-            playerObject = gameObjects[i].GetComponent<Player>();
+            if (player == null) continue;
+
+            playerObject = player;
             playerObject.transform.position = startTile.transform.position + GridData.PlayerSpawnOffset;
             return;
         }
@@ -73,8 +76,8 @@ public partial class GridManager : MonoBehaviour {
 
         Vector3 prefabScale = defaultTile.GetComponent<Transform>().localScale;
 
-        for (int x = 0; x < grid.rows.Count; x++) {
-            for (int y = 0; y < grid.rows[x].row.Count; y++) {
+        for (int x = 0; x < GridSize.x; x++) {
+            for (int y = 0; y < GridSize.y; y++) {
                 if (grid.rows[x].row[y] == null)
                     continue;
 
