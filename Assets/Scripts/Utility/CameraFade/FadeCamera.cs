@@ -13,6 +13,7 @@ public class FadeCamera : MonoBehaviour {
 
     private float currentFadeLevel = 0;
     public float CurrentFadeLevel => currentFadeLevel;
+    public FadeData FadeData => fadeData;
 
     private void Awake() {
         if (fadeImage == null || fadeData == null) return;

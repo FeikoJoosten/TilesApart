@@ -22,9 +22,7 @@ public partial class GridManager : MonoBehaviour {
 #if UNITY_EDITOR
         bool shouldHandleTileChange = UnityEditor.EditorApplication.isPlaying ||
                                       UnityEditor.EditorApplication.isCompiling ||
-                                      UnityEditor.EditorApplication.isUpdating ||
-                                      IsGridMoving == false ||
-                                      playerObject.isMoving == false;
+                                      UnityEditor.EditorApplication.isUpdating;
 #endif
 
         yield return null;
@@ -56,10 +54,8 @@ public partial class GridManager : MonoBehaviour {
             grid.rows.Add(column);
         }
 
-        int gridRowCount = grid.rows.Count;
-
         // In case we are editing data, not the grid size, return
-        if (gridSize.x == gridRowCount && gridSize.x > 0) {
+        if (gridSize.x == grid.rows.Count && gridSize.x > 0) {
             if (gridSize.y == grid.rows[0].row.Count && gridSize.y > 0) {
                 return;
             }
@@ -68,7 +64,7 @@ public partial class GridManager : MonoBehaviour {
         if (gridSize.x <= 0) {
             // Always make sure we have at least 1 value
             gridSize.x = 1;
-            int endIndex = gridRowCount - gridSize.x;
+            int endIndex = grid.rows.Count - gridSize.x;
 
             DestroyTileRow(gridSize.x, endIndex);
             grid.rows.RemoveRange(gridSize.x, endIndex);
@@ -78,7 +74,7 @@ public partial class GridManager : MonoBehaviour {
         if (gridSize.y <= 0) {
             // Always make sure we have at least 1 value
             gridSize.y = 1;
-            for (int i = 0; i < gridRowCount; i++) {
+            for (int i = 0; i < grid.rows.Count; i++) {
                 int endIndex = grid.rows[i].row.Count - gridSize.y;
 
                 DestroyTileColumn(grid.rows[i].row, gridSize.y, endIndex);
@@ -88,11 +84,11 @@ public partial class GridManager : MonoBehaviour {
         }
 
         // Make the rows bigger in case of a resize
-        if (gridSize.x > gridRowCount) {
-            int difference = gridSize.x - gridRowCount;
+        if (gridSize.x > grid.rows.Count) {
+            int difference = gridSize.x - grid.rows.Count;
 
             // Update the rows and make sure the columns are filled up with the correct size
-            for (int i = gridRowCount, size = gridRowCount + difference; i < size; i++) {
+            for (int i = grid.rows.Count, size = grid.rows.Count + difference; i < size; i++) {
                 List<Tile> columns = new List<Tile>();
                 if (columns.Count < gridSize.y) {
                     for (int y = 0; y < gridSize.y; y++) {
@@ -104,8 +100,8 @@ public partial class GridManager : MonoBehaviour {
             }
         }
         // Make the rows smaller in case of a resize
-        else if (gridSize.x < gridRowCount) {
-            int endIndex = gridRowCount - gridSize.x;
+        else if (gridSize.x < grid.rows.Count) {
+            int endIndex = grid.rows.Count - gridSize.x;
 
             DestroyTileRow(gridSize.x, endIndex);
             grid.rows.RemoveRange(gridSize.x, endIndex);
@@ -114,15 +110,14 @@ public partial class GridManager : MonoBehaviour {
         else {
             // Fill up the columns
             for (int x = 0; x < gridSize.x; x++) {
-                int gridColumnCount = grid.rows[x].row.Count;
-                if (gridSize.y > gridColumnCount) {
-                    int difference = gridSize.y - gridColumnCount;
+                if (gridSize.y > grid.rows[x].row.Count) {
+                    int difference = gridSize.y - grid.rows[x].row.Count;
 
-                    for (int y = gridColumnCount, size = gridColumnCount + difference; y < size; y++) {
+                    for (int y = grid.rows[x].row.Count, size = grid.rows[x].row.Count + difference; y < size; y++) {
                         grid.rows[x].row.Add(EditorCreateNewTileObject(x, y));
                     }
-                } else if (gridSize.y < gridColumnCount) {
-                    int endIndex = gridColumnCount - gridSize.y;
+                } else if (gridSize.y < grid.rows[x].row.Count) {
+                    int endIndex = grid.rows[x].row.Count - gridSize.y;
 
                     DestroyTileColumn(grid.rows[x].row, gridSize.y, endIndex);
                     grid.rows[x].row.RemoveRange(gridSize.y, endIndex);
@@ -139,8 +134,8 @@ public partial class GridManager : MonoBehaviour {
             return;
         }
 
-        for (int x = 0; x < GridSize.x; x++) {
-            for (int y = 0; y < GridSize.y; y++) {
+        for (int x = 0; x < grid.rows.Count; x++) {
+            for (int y = 0; y < grid.rows[x].row.Count; y++) {
                 if (!grid.rows[x].row[y])
                     continue;
 
@@ -173,7 +168,7 @@ public partial class GridManager : MonoBehaviour {
     }
 
     private void DestroyTileRow(int rowIndex) {
-        if (rowIndex >= GridSize.x) {
+        if (rowIndex >= grid.rows.Count) {
             return;
         }
 
@@ -185,7 +180,7 @@ public partial class GridManager : MonoBehaviour {
             return;
         }
 
-        if (endIndex >= GridSize.x) {
+        if (endIndex >= grid.rows.Count) {
             return;
         }
 
@@ -195,7 +190,7 @@ public partial class GridManager : MonoBehaviour {
     }
 
     private void DestroyTileColumn(List<Tile> columnToDestroy) {
-        for (int i = 0, columnCount = columnToDestroy.Count; i < columnCount; i++) {
+        for (int i = 0; i < columnToDestroy.Count; i++) {
             DestroyTile(columnToDestroy[i]);
         }
     }
@@ -239,8 +234,8 @@ public partial class GridManager : MonoBehaviour {
         for (int i = 0, length = allTiles.Length; i < length; i++) {
             bool shouldDestroy = true;
 
-            for (int j = 0; j < allManagersLength; j++) {
-                for (int x = 0; x < allManagers[j].GridSize.x; x++) {
+            for (int j = 0; j < allManagers.Length; j++) {
+                for (int x = 0; x < allManagers[j].grid.rows.Count; x++) {
                     if (allManagers[j].grid.rows[x].row.Contains(allTiles[i])) {
                         shouldDestroy = false;
                         break;

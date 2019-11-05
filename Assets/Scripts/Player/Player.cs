@@ -7,10 +7,12 @@ public class Player : MonoBehaviour {
     public static event System.Action<Vector2Int> OnPlayerStartedMoving = delegate { };
     public static event System.Action OnPlayerEndedMoving = delegate { };
     public static event System.Action<string> OnPlayerWon = delegate { };
+    public static event System.Action OnPlayerWillWin = delegate { };
     public static event System.Action<string> OnPlayerDied = delegate { };
-    public static event System.Action OnPlayerActivated = delegate { };
 
     private GridManager gridManager;
+    private PreLoader preLoader = null;
+    public PreLoader PreLoader => preLoader ?? (preLoader = gameObject.AddComponent<PreLoader>());
     public GridManager GridManager {
         get {
             if (gridManager != null) return gridManager;
@@ -51,6 +53,7 @@ public class Player : MonoBehaviour {
     private float currentWrappingTime;
     private float playerWrappingAnimationSpeed;
     private bool pauseMenuEnabled;
+    private bool willWin;
 
     private void Awake() {
         if (GridManager.startTile != null) {
@@ -92,12 +95,12 @@ public class Player : MonoBehaviour {
         UnityEngine.SceneManagement.SceneManager.sceneLoaded += OnSceneLoaded;
 
         playerWrappingAnimationSpeed = GridManager.GridData.PlayerWrappingAnimationSpeed;
-
-        OnPlayerActivated();
+        StartCoroutine(PreLoader.PreLoadNextLevel());
     }
 
     private void OnSceneLoaded(UnityEngine.SceneManagement.Scene loadedScene, UnityEngine.SceneManagement.LoadSceneMode sceneLoadMode) {
         isMoving = false;
+        willWin = false;
     }
 
     private void OnDestroy() {
@@ -124,9 +127,14 @@ public class Player : MonoBehaviour {
 
         Vector2Int tileStartIndex = CurrentTileIndex;
 
-        if (GridManager.GetTileAtIndex(tileStartIndex).IsMovableTile()) {
-            CurrentTileIndex = GridManager.GetTileAtIndex(tileStartIndex).GetNextTileIndex(tileStartIndex, movementDirection);
-        }
+        if (!GridManager.GetTileAtIndex(tileStartIndex).IsMovableTile()) return;
+
+        CurrentTileIndex = GridManager.GetTileAtIndex(tileStartIndex).GetNextTileIndex(tileStartIndex, movementDirection);
+
+        if (!CheckForWin(GetNextPlayerLocation(CurrentTileIndex, movementDirection, false))) return;
+
+        willWin = true;
+        OnPlayerWillWin();
     }
 
     public IEnumerator AnimatePlayerWrapping() {
@@ -253,6 +261,11 @@ public class Player : MonoBehaviour {
 
         Vector2Int newIndex = GetNextPlayerLocation(CurrentTileIndex, movementDirection);
 
+        if (willWin == false && CheckForWin(newIndex)) {
+            willWin = true;
+            OnPlayerWillWin();
+        }
+
         transform.position = GridManager.GetTileWorldPosition(CurrentTileIndex) + GridManager.GridData.PlayerSpawnOffset;
 
         if (GridManager.GetTileAtIndex(newIndex) == null) {
@@ -267,38 +280,41 @@ public class Player : MonoBehaviour {
     }
 
     public void PlayerMoveEnd() {
+        if (hasWon) return;
+
         isMoving = false;
         playerWrappingAnimationSpeed = GridManager.GridData.PlayerWrappingAnimationSpeed;
         OnPlayerEndedMoving();
         // Performance thing, only sync transform changes when we are done moving
         Physics.SyncTransforms();
 
-        if (CheckForWin()) {
+        if (willWin) {
             Win();
+            willWin = false;
         }
     }
 
-    private Vector2Int GetNextPlayerLocation(Vector2Int currentIndex, Vector2Int movementDirection) {
+    private Vector2Int GetNextPlayerLocation(Vector2Int currentIndex, Vector2Int movementDirection, bool checkForDeath = true) {
         Vector2Int newIndex = currentIndex;
 
         if (currentIndex.x + movementDirection.x > GridManager.GridSize.x - 1 && currentIndex.x + movementDirection.x > 0) {
             newIndex.x = 0;
             newIndex.y = currentIndex.y;
-            Death();
+            if (checkForDeath) Death();
         } else if (currentIndex.x + movementDirection.x < GridManager.GridSize.x - 1 && currentIndex.x + movementDirection.x < 0) {
             newIndex.x = GridManager.GridSize.x - 1;
             newIndex.y = currentIndex.y;
-            Death();
+            if(checkForDeath) Death();
         } else if (currentIndex.y + movementDirection.y > GridManager.GridSize.y - 1 && currentIndex.y + movementDirection.y > 0) {
             newIndex.x = currentIndex.x;
             newIndex.y = 0;
-            Death();
+            if(checkForDeath) Death();
         } else if (currentIndex.y + movementDirection.y < GridManager.GridSize.y - 1 && currentIndex.y + movementDirection.y < 0) {
             newIndex.x = currentIndex.x;
             newIndex.y = GridManager.GridSize.y - 1;
-            Death();
+            if(checkForDeath) Death();
         } else {
-            if (DiesOnMovement(currentIndex, movementDirection)) {
+            if (checkForDeath && DiesOnMovement(currentIndex, movementDirection)) {
                 Death();
             }
             newIndex = currentIndex + movementDirection;
@@ -308,6 +324,8 @@ public class Player : MonoBehaviour {
     }
 
     private void Death() {
+        if (isDead) return;
+
         isDead = true;
         PlayerAudioPlayer.PlayRandomDeathSound();
         PlayerAnimator.ResetPlaybackSpeed();
@@ -377,9 +395,9 @@ public class Player : MonoBehaviour {
         return newTile || currentTile;
     }
 
-    public bool CheckForWin() {
-        if (GridManager.GetTileAtIndex(CurrentTileIndex) == null) return false;
-        return GridManager.GetTileAtIndex(CurrentTileIndex).tileType == TileType.End;
+    public bool CheckForWin(Vector2Int tileIndex) {
+        if (GridManager.GetTileAtIndex(tileIndex) == null) return false;
+        return GridManager.GetTileAtIndex(tileIndex).tileType == TileType.End;
     }
 
     [EditorButton]
@@ -395,8 +413,9 @@ public class Player : MonoBehaviour {
         hasWon = true;
         transform.position = GridManager.endTile.transform.position + GridManager.GridData.PlayerSpawnOffset;
 
-        GridManager.SinkLevel(false, true, false);
+        GridManager.SinkLevel(false, true, true);
 
+        StartCoroutine(PreLoader.ActivateNextLevel());
         OnPlayerWon(LevelManager.Instance.GetCurrentLevelName());
     }
 

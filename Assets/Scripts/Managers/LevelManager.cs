@@ -38,8 +38,6 @@ public class LevelManager : Singleton<LevelManager> {
     private FadeCamera fadeCamera = null;
     private FadeCamera fadeCameraInstance;
     public FadeCamera FadeCamera => fadeCameraInstance ?? (fadeCameraInstance = Instantiate(fadeCamera, transform));
-    private PreLoader preLoader = null;
-    public PreLoader PreLoader => preLoader ?? (preLoader = gameObject.AddComponent<PreLoader>());
 
     [SerializeField]
     private List<Chapter> chapters = new List<Chapter>();
@@ -91,7 +89,6 @@ public class LevelManager : Singleton<LevelManager> {
 
         Player.OnPlayerWon += OnLevelWon;
         Player.OnPlayerDied += OnLevelLost;
-        Player.OnPlayerActivated += OnPlayerActivated;
         // Temporary required to define the current game level name
         SceneManager.sceneLoaded += OnSceneLoaded;
         SceneManager.activeSceneChanged += OnActiveSceneChanged;
@@ -414,19 +411,6 @@ public class LevelManager : Singleton<LevelManager> {
         OnCurrentGameSceneChanged();
     }
 
-    public void TriggerCorruptedLoadDetected() {
-        if (Application.isFocused == false) return;
-
-        OnCorruptedLoadDetected();
-        StartCoroutine(PreLoader.PreLoadNextLevel());
-
-        GameObject[] rootObjects = CurrentGameScene.GetRootGameObjects();
-
-        for (int i = 0, length = rootObjects.Length; i < length; i++) {
-            rootObjects[i].SetActive(true);
-        }
-    }
-
     private IEnumerator LoadGameLevelWithFade(string levelToLoad, bool setAsCurrentLevel, bool setAsActiveLevel, bool useFadeEffect = false, bool unloadOtherScenes = false) {
         if (useFadeEffect) {
             FadeCamera.FadeOut();
@@ -675,7 +659,6 @@ public class LevelManager : Singleton<LevelManager> {
 
     private void OnLevelWon(string levelName) {
         SaveProgress();
-        StartCoroutine(PreLoader.ActivateNextLevel());
 
         // In case we force a win in editor with 0 moves required
         if (levelTotalStepsRequiredCounter.ContainsKey(levelName) == false) return;
@@ -709,7 +692,7 @@ public class LevelManager : Singleton<LevelManager> {
     }
 
     private void OnPlayerActivated() {
-        StartCoroutine(PreLoader.PreLoadNextLevel());
+        
     }
 
     private void OnTileMoved(Vector2Int startingIndex, Vector2Int movementDirection) {
@@ -841,7 +824,6 @@ public class LevelManager : Singleton<LevelManager> {
         SaveProgress();
         Player.OnPlayerWon -= OnLevelWon;
         Player.OnPlayerDied -= OnLevelLost;
-        Player.OnPlayerActivated -= OnPlayerActivated;
         // Temporary required to define the current game level name
         SceneManager.sceneLoaded -= OnSceneLoaded;
         SceneManager.activeSceneChanged -= OnActiveSceneChanged;

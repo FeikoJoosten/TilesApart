@@ -64,7 +64,7 @@ public class PlayerAnimator : MonoBehaviour {
             || player.isMoving
             || player.isDead
             || player.hasWon
-            || LevelManager.Instance.PreLoader.isTransitioning
+            || player.PreLoader.isTransitioning
             || Application.isFocused == false) {
             return;
         }

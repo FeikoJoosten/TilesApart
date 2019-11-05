@@ -99,6 +99,7 @@ public partial class Tile : MonoBehaviour {
         LevelManager.OnCorruptedLoadDetected += OnLevelStart;
         GameMenus.OnRestartPressed += OnRestartLevel;
         LevelManager.OnMainMenuLoading += OnBackToMainMenu;
+        GridManager.OnResetTiles += ResetTile;
 
         if (attribute == Attributes.Immobile)
             attributeTile = new TileAttributeImmobile(null);
@@ -149,6 +150,8 @@ public partial class Tile : MonoBehaviour {
     }
 
     private void OnRestartLevel(int moveCount) {
+        if (moveCount == 0) return;
+
         Tile.originalTileMover = Vector2Extensions.Minus1Int;
         Tile.lastMovementDirection = Vector2Extensions.Zero;
     }
@@ -165,14 +168,15 @@ public partial class Tile : MonoBehaviour {
         LevelManager.OnCorruptedLoadDetected -= OnLevelStart;
         GameMenus.OnRestartPressed -= OnRestartLevel;
         LevelManager.OnMainMenuLoading -= OnBackToMainMenu;
+        GridManager.OnResetTiles -= ResetTile;
     }
 
-    private void SetTileIndex(int x, int y, bool useEditorCode = false) {
-        SetTileIndex(new Vector2Int(x, y), useEditorCode);
+    private void SetTileIndex(int x, int y, bool useEditorCode = false, bool isResetting = false) {
+        SetTileIndex(new Vector2Int(x, y), useEditorCode, isResetting);
     }
 
-    private void SetTileIndex(Vector2Int newTileIndex, bool useEditorCode = false) {
-        TileOwner.UpdateTileIndexLocation(tileIndex, newTileIndex, this, false, useEditorCode);
+    private void SetTileIndex(Vector2Int newTileIndex, bool useEditorCode = false, bool isResetting = false) {
+        TileOwner.UpdateTileIndexLocation(tileIndex, newTileIndex, this, false, isResetting);
 
         if (useEditorCode) {
             Vector3 newLocalPosition = TileOwner.GetTileLocalPosition(newTileIndex);
@@ -198,7 +202,7 @@ public partial class Tile : MonoBehaviour {
         float endTime = Time.time + TileOwner.GridData.TileVerticalMovement[TileOwner.GridData.TileVerticalMovementKeyCount - 1].time;
 
         if (willTeleport) {
-            StartCoroutine(AnimateTileWrap(newTileIndex, movementStartPosition));
+            yield return AnimateTileWrap(newTileIndex, movementStartPosition);
         } else {
             while (Time.time < endTime) {
 
@@ -376,14 +380,14 @@ public partial class Tile : MonoBehaviour {
 
         Vector2Int movementDirection;
 
-        if (direction == Vector3.right) {
-            movementDirection = Vector2Int.right;
-        } else if (direction == Vector3.left) {
-            movementDirection = Vector2Int.left;
-        } else if (direction == Vector3.forward) {
-            movementDirection = Vector2Int.up;
-        } else if (direction == Vector3.back) {
-            movementDirection = Vector2Int.down;
+        if (direction == Vector3Extensions.Right) {
+            movementDirection = Vector2Extensions.Right;
+        } else if (direction == Vector3Extensions.Left) {
+            movementDirection = Vector2Extensions.Left;
+        } else if (direction == Vector3Extensions.Forward) {
+            movementDirection = Vector2Extensions.Up;
+        } else if (direction == Vector3Extensions.Back) {
+            movementDirection = Vector2Extensions.Down;
         } else {
             // Invalid movement direction
             return;
@@ -436,7 +440,8 @@ public partial class Tile : MonoBehaviour {
         if (TileOwner.GetTileAtIndex(newIndex) != null) {
             TileOwner.GetTileAtIndex(newIndex).MoveTile(direction);
         } else {
-            Tile.originalTileMover = Vector2Extensions.Minus1Int;
+            if (!Application.isPlaying)
+                Tile.originalTileMover = Vector2Extensions.Minus1Int;
         }
 
         if (IsMovableTile()) {
@@ -444,7 +449,17 @@ public partial class Tile : MonoBehaviour {
         }
     }
 
-    public void ResetTile() {
-        SetTileIndex(startingTileIndex, true);
+    private void ResetTile(GridManager manager) {
+        if (manager != TileOwner) return;
+
+        StopAllCoroutines();
+
+        TileOwner.ForceTileToSlot(startingTileIndex, this);
+
+        Vector3 newLocalPosition = TileOwner.GetTileLocalPosition(startingTileIndex);
+        newLocalPosition.y = transform.localPosition.y;
+        transform.localPosition = newLocalPosition;
+        tileIndex = startingTileIndex;
+        UpdateObjectName();
     }
 }

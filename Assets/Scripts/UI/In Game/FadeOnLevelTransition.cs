@@ -18,18 +18,18 @@ public class FadeOnLevelTransition : MonoBehaviour {
         fadeOutCurveKeyCount = fadeOutCurve.length;
         buttonToUpdate = GetComponent<Button>();
 
-        Player.OnPlayerWon += OnPlayerOnOnPlayerWon;
+        Player.OnPlayerWillWin += OnPlayerWillWin;
         LevelManager.OnCurrentGameSceneChanged += OnLevelLoaded;
         LevelManager.OnCorruptedLoadDetected += OnLevelLoaded;
     }
 
     private void OnDestroy() {
-        Player.OnPlayerWon -= OnPlayerOnOnPlayerWon;
+        Player.OnPlayerWillWin -= OnPlayerWillWin;
         LevelManager.OnCurrentGameSceneChanged -= OnLevelLoaded;
         LevelManager.OnCorruptedLoadDetected -= OnLevelLoaded;
     }
 
-    private void OnPlayerOnOnPlayerWon(string wonLevel) {
+    private void OnPlayerWillWin() {
         StopAllCoroutines();
         StartCoroutine(FadeButton(fadeOutCurve, true, fadeOutCurveKeyCount));
     }

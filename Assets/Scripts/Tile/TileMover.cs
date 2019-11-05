@@ -37,18 +37,18 @@ public partial class TileMover : MonoBehaviour {
 
     private void Start() {
         // Get grid manager reference for later use
-        Player.OnPlayerWon += OnPlayerWin;
+        Player.OnPlayerWillWin += OnPlayerWillWin;
         GameMenus.OnPauseMenuOpened += DisableInput;
         GameMenus.OnPauseMenuClosed += EnableInput;
     }
 
     private void OnDestroy() {
-        Player.OnPlayerWon -= OnPlayerWin;
+        Player.OnPlayerWillWin -= OnPlayerWillWin;
         GameMenus.OnPauseMenuOpened -= DisableInput;
         GameMenus.OnPauseMenuClosed -= EnableInput;
     }
 
-    private void OnPlayerWin(string sceneName) {
+    private void OnPlayerWillWin() {
         DisableInput();
     }
 
@@ -60,7 +60,7 @@ public partial class TileMover : MonoBehaviour {
             || GridManager.PlayerObject.isMoving
             || GridManager.PlayerObject.isDead
             || GridManager.PlayerObject.hasWon
-            || LevelManager.Instance.PreLoader.isTransitioning
+            || GridManager.PlayerObject.PreLoader.isTransitioning
             || Application.isFocused == false) {
             return;
         }

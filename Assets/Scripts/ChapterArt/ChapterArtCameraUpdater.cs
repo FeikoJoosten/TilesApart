@@ -12,7 +12,7 @@ public class ChapterArtCameraUpdater : MonoBehaviour {
             return;
         }
 
-        PreLoader.OnNextCameraActived += UpdateCanvasCamera;
+        PreLoader.OnNextCameraActivated += UpdateCanvasCamera;
         //LevelManager.OnCurrentGameSceneChanged += UpdateCanvasCamera;
         //LevelManager.OnCorruptedLoadDetected += UpdateCanvasCamera;
 
@@ -22,7 +22,7 @@ public class ChapterArtCameraUpdater : MonoBehaviour {
     private void OnDestroy() {
         //LevelManager.OnCurrentGameSceneChanged -= UpdateCanvasCamera;
         //LevelManager.OnCorruptedLoadDetected -= UpdateCanvasCamera;
-        PreLoader.OnNextCameraActived -= UpdateCanvasCamera;
+        PreLoader.OnNextCameraActivated -= UpdateCanvasCamera;
     }
 
     private void OnApplicationFocus(bool hasFocus) {

@@ -44,14 +44,28 @@ public class SceneLoader : MonoBehaviour {
             yield return null;
         }
 
-        LoadScene();
+        if(SceneUtility.GetBuildIndexByScenePath(sceneToLoad) == -1) {
+            Debug.LogWarning("Please add the scene " + sceneToLoad + " to the build path");
+            yield break;
+        }
+
+        Scene currentScene = SceneManager.GetActiveScene();
+        AsyncOperation async = SceneManager.LoadSceneAsync(sceneToLoad, LoadSceneMode.Additive);
+        async.allowSceneActivation = true;
+
+        while (!async.isDone) {
+            yield return null;
+        }
+
+        LevelManager.Instance.FadeCamera.FadeIn();
+        yield return SceneManager.UnloadSceneAsync(currentScene);
     }
 
     public void LoadScene() {
-        if (string.IsNullOrEmpty(sceneToLoad)) {
+        if(string.IsNullOrEmpty(sceneToLoad)) {
             return;
         }
-        if (SceneUtility.GetBuildIndexByScenePath(sceneToLoad) == -1) {
+        if(SceneUtility.GetBuildIndexByScenePath(sceneToLoad) == -1) {
             Debug.LogWarning("Please add the scene " + sceneToLoad + " to the build path");
             return;
         }

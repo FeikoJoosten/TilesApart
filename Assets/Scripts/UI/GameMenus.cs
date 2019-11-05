@@ -22,8 +22,11 @@ public class GameMenus : AudioPlayer {
 
     public GameObject PauseMenu => pauseMenu;
 
+    private bool isResetting;
+
     protected override void Start() {
         base.Start();
+        isResetting = false;
 
         DontDestroyOnLoad(gameObject);
         Player.OnPlayerDied += OnPlayerDied;
@@ -40,6 +43,7 @@ public class GameMenus : AudioPlayer {
 #if UNITY_ANDROID
         AndroidBackButton.AndroidBackButtonPressed -= OnAndroidBackButtonPressed;
 #endif
+        isResetting = false;
     }
 
     private void OnPlayerDied(string diedAtLevel) {
@@ -49,6 +53,8 @@ public class GameMenus : AudioPlayer {
     }
 
     private void OnPlayerRespawned() {
+        isResetting = false;
+
         if (restartButton == null) return;
 
         restartButton.interactable = true;
@@ -110,6 +116,10 @@ public class GameMenus : AudioPlayer {
 
     /// <summary> Reset button of the UI menu </summary>
     public void ResetButton() {
+        if (LevelManager.Instance.GetCurrentMoveCount() == 0) return;
+        if (isResetting) return;
+        isResetting = true;
+
         // Change UI menus
         pauseMenu.SetActive(false);
         gameMenu.SetActive(true);

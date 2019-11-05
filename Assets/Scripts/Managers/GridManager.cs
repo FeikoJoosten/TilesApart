@@ -8,6 +8,8 @@ public struct GridHolder {
 }
 
 public partial class GridManager : MonoBehaviour {
+    public static event System.Action<GridManager> OnResetTiles = delegate { };
+
     [Header("Grid data settings")]
     [SerializeField]
     private GridData gridData = null;
@@ -72,8 +74,6 @@ public partial class GridManager : MonoBehaviour {
             return playerObject;
         }
     }
-
-    private List<Tile> tilesToReset = new List<Tile>();
 
     private void Start() {
         StopAllCoroutines();
@@ -204,11 +204,11 @@ public partial class GridManager : MonoBehaviour {
     }
 
     public void UpdateTileIndexLocation(Vector2Int oldIndex, Vector2Int newIndex, Tile tileToUpdate, bool ignoreOldIndex = false, bool isResetting = false) {
-        if (newIndex.x >= GridSize.x || newIndex.x < 0 || newIndex.y < 0) {
+        if (newIndex.x >= grid.rows.Count || newIndex.x < 0 || newIndex.y < 0) {
             return;
         }
 
-        if (newIndex.y >= GridSize.y) {
+        if (newIndex.y >= grid.rows[newIndex.x].row.Count) {
             return;
         }
 
@@ -238,6 +238,13 @@ public partial class GridManager : MonoBehaviour {
         grid.rows[tileIndex.x].row[tileIndex.y] = null;
     }
 
+    public void ForceTileToSlot(Vector2Int newIndex, Tile tileToForce) {
+        if (newIndex.x < 0 || newIndex.x >= GridSize.x || newIndex.y < 0 || newIndex.y >= GridSize.y)
+            return;
+
+        Grid.rows[newIndex.x].row[newIndex.y] = tileToForce;
+    }
+
     public void SinkLevel(bool instant = false, bool fadeLevel = false, bool ignoreStartTile = true, bool ignoreEndTile = true) {
         for (int x = 0; x < GridSize.x; x++) {
             for (int y = 0; y < GridSize.y; y++) {
@@ -265,20 +272,12 @@ public partial class GridManager : MonoBehaviour {
     }
 
     public void ResetLevel() {
-        // We need to save the tiles to reset in a separate list, otherwise they can overwrite each other
-        tilesToReset.Clear();
-
-        for (int x = 0; x < GridSize.x; x++) {
-            tilesToReset.AddRange(grid.rows[x].row);
-        }
-
         for (int x = 0; x < GridSize.x; x++) {
             for (int y = 0; y < GridSize.y; y++) {
                 grid.rows[x].row[y] = null;
             }
         }
 
-        for (int i = 0, length = tilesToReset.Count; i < length; i++)
-            tilesToReset[i].ResetTile();
+        OnResetTiles(this);
     }
 }
